@@ -1,0 +1,30 @@
+
+{
+  "generated_at": "2026-11-14T11:50:00-06:00",
+  "model": "claude-sonnet-5-5",
+  "prompt_version": "1.0.0",
+  "insights": [
+    {
+      "title": "Example insight about treatment outcomes",
+      "description": "The example document reports an improvement in the measured outcome after the intervention.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-000",
+          "doi": "10.0000/example.001",
+          "page": 12,
+          "quote": "EXAMPLE DATA: The measured outcome improved after the intervention."
+        }
+      ],
+      "explanation": "EXAMPLE DATA: This conclusion is supported by the quoted passage in the example document."
+    },
+    {
+      "title": "Insufficient information about long-term effects",
+      "description": "The available example information does not establish the long-term effects of the intervention.",
+      "evidence_status": "insufficient_data",
+      "citations": [],
+      "explanation": "EXAMPLE DATA: The document does not provide sufficient follow-up information to establish long-term effects."
+    }
+  ]
+}

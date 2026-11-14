@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # nasa-fire-dashboard
 
 Dashboard de seguridad contra incendios en microgravedad (NASA Space Apps 2026).
@@ -23,3 +24,10 @@ usa los datos de ejemplo de `data/mock/` y muestra un aviso.
 - `data/processed/insights.json`: ver `data/mock/insights_mock.json` (Python 3).
 
 La app nunca llama al LLM: solo lee JSON precalculado.
+=======
+# NASA Fire Dashboard
+
+## Requisitos
+
+- Python 3.10 o superior.
+>>>>>>> origin/main
