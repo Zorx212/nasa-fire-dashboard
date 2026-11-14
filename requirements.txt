@@ -5,3 +5,4 @@ pymupdf
 openpyxl
 python-dotenv
 anthropic
+pydantic>=2
