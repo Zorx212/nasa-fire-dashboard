@@ -1,0 +1,47 @@
+[
+  {
+    "id": "I-001",
+    "scope": "experiment",
+    "psi_ids": ["PSI-MOCK-A"],
+    "title": "Efecto del oxígeno en la propagación (DATOS DE EJEMPLO)",
+    "claims": [
+      {
+        "text": "Al subir el oxígeno de 21% a 30%, la velocidad de propagación aumentó en el experimento de ejemplo.",
+        "psi_id": "PSI-MOCK-A",
+        "doi": "10.0000/mock-a",
+        "page": 14
+      },
+      {
+        "text": "A menor presión (70 kPa) la propagación fue más lenta que a presión ambiente.",
+        "psi_id": "PSI-MOCK-A",
+        "doi": "10.0000/mock-a",
+        "page": 15
+      }
+    ],
+    "confidence": "media"
+  },
+  {
+    "id": "I-002",
+    "scope": "comparison",
+    "psi_ids": ["PSI-MOCK-A", "PSI-MOCK-B"],
+    "title": "Sólido plástico vs. tela de celulosa (DATOS DE EJEMPLO)",
+    "claims": [
+      {
+        "text": "La celulosa se extinguió a 21% O2 con flujo alto, mientras que el PMMA propagó.",
+        "psi_id": "PSI-MOCK-B",
+        "doi": "10.0000/mock-b",
+        "page": 8
+      }
+    ],
+    "confidence": "baja"
+  },
+  {
+    "id": "I-003",
+    "scope": "experiment",
+    "psi_ids": ["PSI-MOCK-C"],
+    "title": "Llamas gaseosas (DATOS DE EJEMPLO)",
+    "claims": [],
+    "confidence": "baja",
+    "note": "no hay datos suficientes"
+  }
+]
