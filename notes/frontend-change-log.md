@@ -1,0 +1,32 @@
+# Registro de cambios de Frontend (`uri/frontend`)
+
+## 1. Dirección visual «fichas de ensayo» y paleta cerrada (`app/ui.py`)
+- **Lienzo y superficies:** Fondo `.stApp` sobre papel cuadriculado milimétrico (`120px` y `24px`, retícula `#0F172A` traslúcida sobre `#F6F7F9`). El panel lateral (`section[data-testid="stSidebar"]`) se mantiene blanco liso (`#FFFFFF`) con borde derecho `#DDE2E8`, botones de escenario con radio de `4px` y cero sombras.
+- **Paleta cerrada:** Únicamente `#0F172A` (tinta), `#F6F7F9` (papel), `#FFFFFF` (blanco), `#DDE2E8` (línea), `#64748B` (gris), `#E84C22` (llama), `#B91C1C` (propagó / vacío crítico), `#0F766E` (extinguió y evidencia), más `#1D4ED8` reservado solo para puntos `Gas` en Cobertura. Se eliminaron bordes de color laterales, fondos pastel en insignias, viñetas `"•"`, sombras y radios superiores a `4px`.
+- **Componentes en `app/ui.py`:**
+  - `ficha(tag, body_html)`: contenedor `.f` blanco sin redondeo con marcas de registro en las 4 esquinas y pestaña superior `.tag` en monoespaciado (`#0F172A` / `#FFFFFF`).
+  - `strip(cells)`: tira superior compartida de métricas separadas por divisores verticales de `1px` (`@media (max-width: 760px)` apilada a `1fr`).
+  - `dot_specs(rows)`: especificaciones técnicas con guía de puntos hasta el valor tabular a la derecha.
+  - `locator(df, hi, w=104, h=84, zone=None)`: minimapa SVG `O₂` (`0–100 %`) vs. presión (`0–105 kPa`) con la zona de escenario punteada, nube gris del catálogo y puntos destacados en `#E84C22` con anillo.
+  - `badge(t, k=None)`: glifo SVG de `14px` (punto sólido `#B91C1C` para propagación o anillo punteado `#0F766E` para extinción) sin fondo ni borde redondeado.
+  - `ev_meter(st_code)`: medidor de 3 barras de `16×6px` (`#0F766E` rellenas, `#94A3B8` contorno).
+  - `norm(i)` / `extract_insights(raw)`: mantiene compatibilidad con la lista mock (`app/data_loader.py`) y `InsightsDocument` (`src/insights/schemas.py`), devolviendo un único párrafo con superíndices `<sup>n</sup>` sin viñetas `"•"`.
+
+## 2. Motor de transición fluida sin cortes (`_SMOOTH_BOOT_JS` y `setup()` en `app/ui.py`)
+- **Persistencia en `<head>`:** `setup(title)` inyecta `<span class="ff-boot"></span><script>...` (sin caracteres `<` literales dentro del script para evitar filtrado de DOMPurify), fijando `<link id="ff-fonts-link">` (`Barlow Semi Condensed`, `Inter`, `JetBrains Mono`) y `<style id="ff-head-css">` en `document.head`.
+- **Escudo de escenario y sidebar (`#ff-shield-host`) + compuerta de completitud (`poll()`):**
+  - Al cambiar de pestaña (`st.page_link`) o interactuar con controles de filtrado (botones de escenario, `st.radio` horizontal, `selectbox`/`multiselect` y sliders), `window.__ffSmooth` congela la vista saliente en `#ff-shield-host` (y el sidebar durante cambios de ruta), mantiene la altura mínima de `.block-container` para evitar colapsos y espera a que la nueva pestaña (`liveTab !== startTab`) o la nueva firma DOM (`curSig !== startSig`), todos los bloques `stHtml`, `stSkeleton` y gráficos Plotly `.main-svg` estén realmente montados antes de ejecutar una disolución cruzada simultánea (`145–195ms cubic-bezier(0.22, 1, 0.36, 1)`).
+  - En `cleanClone(origRoot, node)`, se preservan las dimensiones exactas (`width`/`max-width`/`min-width`) de los bloques flex/grid, se copian los bitmaps `<canvas>` (`drawImage`), se eliminan por completo los contenedores `stElementContainer` de inyección (`script`, `style`, `.ff-boot`) para mantener `0px` de desplazamiento vertical (`liveTop: 20 == shTop: 20`), y se desactivan re-animaciones dentro de `#ff-shield-host` para que los contadores `.cnt` conserven su valor final sin reiniciarse a `0`.
+  - Respuesta táctil inmediata (`0ms`, atributo `data-ff-opt`, limpiado solo en `#root`) al pulsar pestañas, botones de escenario y píldoras de radio.
+  - Apertura y cierre suave de citas `<details class="cite-det">` y expanders mediante `interpolate-size: allow-keywords`, `details::details-content` y Web Animations API sobre `.cite-q`.
+
+## 3. Reloj continuo $C^1$ del isotipo orbital (`app/ui.py`, `app/assets/`)
+- `_load_logo_svg(size=44)` conserva `app/assets/logo_animated.svg` (`44×44px` en sidebar) y `app/assets/logo.png` en pestaña.
+- `window.__ffSmooth` sincroniza en cada mutación del DOM el reloj SMIL (`svg.setCurrentTime`) y el desfase negativo de `.ff-fl` / `.ff-sp`, evitando que el punto orbital se reinicie a `t = 0` cuando React recrea el `<svg>` entre páginas o recargas.
+- Al seleccionar un escenario, `triggerBoost()` acelera suavemente el reloj SMIL en `+9.0s` (una vuelta orbital completa en 3D por detrás y por delante de la esfera a lo largo de la elipse a `-24°`) durante `900ms` con curva cúbica $C^1$-continua, mientras `.ff-orb` mantiene `ff-once-a` / `ff-once-b` en su plano sin deformar la elipse.
+
+## 4. Vistas actualizadas (`app/pages/1_Ranking.py` a `4_Cobertura.py`)
+- **`1_Ranking.py`:** Tira `.strip` superior con `.cnt` / `.cnt-a` / `.cnt-b`, tabla envuelta en `ui.ficha(f"Ranking · {len(ranked)} ensayos", ...)` con resalte plano `#F6F7F9` y número naranja `#E84C22` en la fila seleccionada, gráfico de barras en `st.container(key="rk_chart_card")` plano y ficha de detalle `ui.ficha(f"{psi_raw} · {exp_raw}", ...)` con `ui.badge`, `ui.dot_specs`, barra apilada 4 componentes y `ui.locator`.
+- **`2_Comparacion.py`:** Matriz comparativa dentro de `ui.ficha(f"Comparación · {len(chosen)} ensayos", ...)` con `ui.locator` (`96×74`) por experimento, filas diferentes en negrita y borde punteado, y gráficas planas en `cmp_cond_card` / `cmp_spread_card` con anotación explícita `"sin dato"` para `NaN`.
+- **`3_Insights.py`:** Sin `st.expander` en el cuerpo principal ni bordes de color laterales; cada hallazgo es un `ui.ficha(f"Insight {k} · {len(hi_df)} ensayos citados", ...)` con título `22px`, `ui.ev_meter`, párrafo `44ch` + superíndices `#E84C22`, `ui.locator(df, hi_df)` y notas expandibles nativas `<details class="cite-det"><summary class="cite-sum">` con estados `"Ver cita"` / `"Ocultar cita"` y enlace a Cobertura en `insufficient_data`.
+- **`4_Cobertura.py`:** Bloque `.gap-hero` abierto sobre el lienzo milimétrico (sin barra de color lateral), mapa de cobertura Plotly dentro de `st.container(key="cov_map_ficha")` con marcas de esquina y pestaña `<span class="tag">Mapa de cobertura</span>`, rayado diagonal `#B91C1C` en zonas con `0` ensayos, y tira `.strip` para el desglose por gravedad conservando ambos expanders inferiores.
