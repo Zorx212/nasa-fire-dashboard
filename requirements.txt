@@ -5,8 +5,4 @@ pymupdf
 openpyxl
 python-dotenv
 anthropic
-<<<<<<< HEAD
-
-=======
 pydantic>=2
->>>>>>> origin/main
