@@ -1,0 +1,370 @@
+{
+  "generated_at": "2026-11-15T17:56:11.293017Z",
+  "model": "claude-sonnet-5-5",
+  "prompt_version": "1.1.0",
+  "insights": [
+    {
+      "title": "Llamas frías quasi-estacionarias en microgravedad",
+      "description": "En microgravedad se pueden establecer llamas estables quasi-estacionarias alrededor de una gota, sin llama visible y a 700 a 900 K. Las llamas calientes superan los 1200 K. La simetría esférica de la gota en microgravedad facilita modelar la química.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 3,
+          "quote": "FLEX series of experiments showed for the first time that quasi-steady stable flames can be established surrounding a droplet in microgravity under certain conditions,"
+        },
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 3,
+          "quote": "without a visible flame at temperatures in the range of 700 to 900 K, unlike the hot flames where the flame temperature"
+        },
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 6,
+          "quote": "In microgravity the droplets burn in a spherically symmetric form, and therefore it is possible to model the processes with complex chemical kinetic mechanisms"
+        }
+      ],
+      "explanation": "Las citas indican que las llamas frías estables sin llama visible aparecen a 700 a 900 K, distintas de las calientes (más de 1200 K), y que la microgravedad da combustión esféricamente simétrica útil para modelar la cinética."
+    },
+    {
+      "title": "Reencendidos múltiples a presión elevada",
+      "description": "Por encima de 2 atm se observaron ciclos repetidos de reencendido: la llama caliente se extingue por pérdida radiativa de calor, sigue una llama fría y luego vuelve la llama caliente. Esto no se esperaba según los experimentos FLEX previos.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 6,
+          "quote": "pressure is increased above 2 atm, multiple reignition cycles were observed, where first the hot flame"
+        },
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 6,
+          "quote": "extinguishes due to radiative heat loss followed by cool flame, and then reignition to a hot-flame followed"
+        }
+      ],
+      "explanation": "El texto describe la secuencia de extinción radiativa, llama fría y reencendido que se repite al aumentar la presión por encima de 2 atm, hasta consumir la gota."
+    },
+    {
+      "title": "La dilución con helio adelanta la extinción de la llama fría",
+      "description": "La extinción de la llama fría depende sobre todo de la cinética química. Más dilución con helio provoca una extinción más temprana y por tanto un diámetro de extinción mayor.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 9,
+          "quote": "Cool flame extinction is controlled primarily by chemical kinetics."
+        },
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 9,
+          "quote": "Increase helium dilution leads to earlier cool flame extinction giving a larger"
+        }
+      ],
+      "explanation": "Las citas afirman que la extinción está controlada por la cinética y que aumentar el helio adelanta la extinción, con un mayor diámetro de extinción para n-dodecano."
+    },
+    {
+      "title": "El comportamiento del hollín cambia con la presión",
+      "description": "A baja presión se forma una cáscara de hollín esférica estable, pero al subir la presión se vuelve difusa y mal definida. A presiones mayores queda hollín residual alrededor de la gota tras extinguirse la llama caliente. Los mecanismos no se entienden bien.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 10,
+          "quote": "pressure increase the soot-shell becomes diffuse and undefined."
+        },
+        {
+          "psi_id": "PSI-39",
+          "doi": "10.60555/m6pj-a914",
+          "page": 10,
+          "quote": "But, when the pressure increases, residual soot is seen surrounding the droplet even after the hot"
+        }
+      ],
+      "explanation": "El documento describe la pérdida de definición de la cáscara de hollín y la presencia de hollín residual al aumentar la presión, y señala que las razones aún no se comprenden."
+    },
+    {
+      "title": "Sin datos sobre propagación de llama en materiales sólidos",
+      "description": "El documento trata sobre combustión de gotas de combustible líquido y llamas frías. No establece resultados sobre propagación de llama en materiales sólidos, humo ni flujo de aire, que son temas clave para la seguridad contra incendios en naves.",
+      "evidence_status": "insufficient_data",
+      "confidence": null,
+      "citations": [],
+      "explanation": "Los experimentos usan gotas de n-dodecano, mezclas con iso-dodecano y farnesano. Los resultados se describen como preliminares y sin analizar por completo, por lo que no bastan para conclusiones sobre incendios de materiales en naves espaciales."
+    },
+    {
+      "title": "Menor flujo de aire produce partículas de humo más grandes",
+      "description": "Las partículas de humo crecen cuando baja el flujo de aire. En los ensayos sin flujo, el diámetro de masa promedio fue 30 % a 40 % mayor que en los ensayos con flujo. El humo atrapado en un recinto de aviónica sería más grande que el liberado en áreas ventiladas.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 5,
+          "quote": "These figures show a strong trend of increased particle size at low flow rates."
+        },
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 9,
+          "quote": "It is found for all of the materials the diameter of average mass is 30 % to 40 % larger for the zero-flow tests compared to the flow tests."
+        }
+      ],
+      "explanation": "Los pasajes muestran la tendencia de mayor tamaño con menor velocidad del aire y cuantifican el aumento en los ensayos de flujo cero. El documento lo atribuye a una concentración inicial mayor y más coagulación."
+    },
+    {
+      "title": "La condición de flujo cero es propia de microgravedad",
+      "description": "Sin flujo en microgravedad, el transporte depende de la difusión molecular y la expansión térmica. En gravedad normal, la flotabilidad ampliaría la zona de mezcla. Por eso los tamaños mayores de partícula son relevantes para los detectores de humo de naves espaciales.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 9,
+          "quote": "It is important to recognize that this condition is unique to low-gravity scenarios."
+        }
+      ],
+      "explanation": "El texto afirma que la condición es exclusiva de baja gravedad y lo vincula con el diseño de equipos de detección de incendios en vehículos espaciales."
+    },
+    {
+      "title": "Sin flujo cambia la morfología del humo de Pyrell",
+      "description": "Sin flujo, el calor se transporta sobre todo por conducción y la temperatura del gas probablemente aumenta. El humo de Pyrell pasó de cúmulos fractales de hasta 30 esferas primarias (con flujo de 8 cm/s) a partículas esféricas (sin flujo).",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 9,
+          "quote": "For the zero-flow case, the heat is transported primarily by conduction rather than convection."
+        },
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 9,
+          "quote": "A striking effect of this temperature change is the change in the morphology of the Pyrell smoke"
+        }
+      ],
+      "explanation": "Los pasajes relacionan el transporte de calor por conducción en flujo cero con el cambio de morfología del humo de Pyrell observado con TEM."
+    },
+    {
+      "title": "Humos de Kapton y Teflón son difíciles de detectar con dispersión de luz",
+      "description": "Las partículas de Teflón y Kapton fueron muy pequeñas, mientras que lamparilla y silicón dieron diámetros mayores. Por eso un solo momento de la distribución no basta; se necesita un sistema que mida más de un momento para detectar humo sin falsas alarmas.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 5,
+          "quote": "Overall, the Teflon and Kapton particles were very small."
+        },
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 5,
+          "quote": "This suggests that detection of these particles against the background environment will require a detection system capable of measuring more than one moment"
+        }
+      ],
+      "explanation": "El documento contrasta tamaños pequeños y grandes según el material y concluye que la detección frente al fondo requiere medir más de un momento de la distribución."
+    },
+    {
+      "title": "Detector de dos momentos (MPASS) reduce falsas alarmas",
+      "description": "El MPASS, un detector prototipo de dos momentos, escala su respuesta al tamaño de partícula muestreado. Puede distinguir mucho humo de pocas partículas grandes de polvo, lo que puede reducir falsas alarmas.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-101",
+          "doi": "10.60555/2np7-jv14",
+          "page": 7,
+          "quote": "The MPASS therefore has the ability to discern the difference between a strong signal from a high smoke concentration"
+        }
+      ],
+      "explanation": "El pasaje indica que combinar dos momentos permite separar una señal fuerte por humo de una causada por polvo grande. El texto lo presenta como una característica que puede minimizar falsas alarmas."
+    },
+    {
+      "title": "La ausencia de flujo flotante cambia la estructura de la flama",
+      "description": "Sin flujo flotante aumenta el tiempo de residencia en los fuegos de microgravedad, lo que modifica sustancialmente la estructura de la flama. Por ello se espera que cambien también las firmas del humo y los requisitos de detección.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 11,
+          "quote": "The absence of buoyant flow increases the residence time in microgravity fires causing substantial changes in flame structure."
+        }
+      ],
+      "explanation": "El pasaje afirma directamente que la falta de flujo flotante alarga el tiempo de residencia y altera la estructura de la flama. Es una afirmación del documento y no una medición propia de flamas en SAME."
+    },
+    {
+      "title": "El tamaño del humo depende del material y los detectores responden distinto",
+      "description": "Kapton y Teflón producen partículas muy pequeñas, mientras que la mecha de lámpara y el silicón generan partículas más grandes. Los detectores de la ISS y del transbordador responden de forma distinta según el tamaño, así que se requiere un sistema que discrimine tamaños.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 27,
+          "quote": "The small diameters for the Kapton and Teflon will make detection of this smoke challenging for light scattering devices"
+        },
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 25,
+          "quote": "This shows that the smoke detectors used in STS and ISS have different response to particle size range."
+        },
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 29,
+          "quote": "will probably require a detection system that can discriminate the particle size distribution to at least a limited degree."
+        }
+      ],
+      "explanation": "Los pasajes relacionan el tamaño de partícula de cada material con la respuesta de los detectores de dispersión de luz y con la diferencia entre los detectores de la ISS y del transbordador. De ahí concluyen que la detección debe discriminar tamaños."
+    },
+    {
+      "title": "El envejecimiento del humo aumenta el tamaño de las partículas",
+      "description": "Tras mantener el humo en la cámara de envejecimiento, los tamaños medios de partícula aumentaron de forma sustancial. Esto es relevante para humo que sale de un volumen cerrado, como un gabinete de aviónica.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 27,
+          "quote": "The aging results show substantial increase in the average particle sizes"
+        }
+      ],
+      "explanation": "El reporte indica que las corridas con envejecimiento dieron tamaños promedio mayores que las de referencia. La Tabla 1 muestra el mismo aumento en los cuatro materiales."
+    },
+    {
+      "title": "En microgravedad el mezclado domina el transporte de humo y retrasa la detección",
+      "description": "El modelo de transporte de humo indica que el mezclado domina el transporte, por lo que los retrasos de detección son mayores que en gravedad normal.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-102",
+          "doi": "10.60555/gd4k-8h62",
+          "page": 4,
+          "quote": "The smoke transport model demonstrated that mixing dominates the smoke transport and that consequently detection time lags are longer than in normal gravity."
+        }
+      ],
+      "explanation": "El resumen del reporte presenta este resultado del modelo numérico de la ISS. Es un resultado de simulación, no de medición en vuelo."
+    },
+    {
+      "title": "Sin datos sobre propagación de flama, extinción, oxígeno o presión",
+      "description": "El documento no establece cómo se propaga la flama, cómo se extingue ni cómo influyen el oxígeno, la presión o el flujo en una flama real. Solo aborda humo de materiales sobrecalentados por debajo del punto de ignición.",
+      "evidence_status": "insufficient_data",
+      "confidence": null,
+      "citations": [],
+      "explanation": "SAME calentó muestras sin ignición para caracterizar el tamaño del humo, y no se reportan velocidades de propagación, condiciones de extinción ni variaciones de concentración de oxígeno o presión."
+    },
+    {
+      "title": "Más flujo de aire coaxial alarga la longitud del punto de humo",
+      "description": "En llamas de difusión no flotantes, aumentar la velocidad del co-flujo suele aumentar la longitud luminosa en el punto de humo. Esto significa que la llama puede crecer más antes de emitir hollín.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 21,
+          "quote": "For a given choice of fuel and burner diameter, an increase in coflow velocity generally increases the smoke point length."
+        },
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 21,
+          "quote": "This behavior is attributed to decreased residence times and radiative losses as coflow velocity increases, and is an important issue for further consideration."
+        }
+      ],
+      "explanation": "El texto describe directamente la tendencia medida en vuelo y la atribuye a menores tiempos de residencia y menores pérdidas radiativas al subir el co-flujo."
+    },
+    {
+      "title": "Un quemador más pequeño retrasa la emisión de hollín",
+      "description": "En microgravedad con co-flujo, los puntos de humo son más largos con quemadores de menor diámetro. Los autores lo relacionan con el tiempo de residencia.",
+      "evidence_status": "supported",
+      "confidence": "high",
+      "citations": [
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 21,
+          "quote": "Figure 18 reveals that smoke points of nonbuoyant coflowing flames decrease with increasing burner diameter."
+        },
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 24,
+          "quote": "A decrease in burner diameter increases the smoke point length."
+        }
+      ],
+      "explanation": "Tanto los resultados como las conclusiones indican que al aumentar el diámetro del quemador el punto de humo se acorta, y que al reducirlo se alarga."
+    },
+    {
+      "title": "En microgravedad la radiación domina el punto de humo y la llama se extingue en la punta",
+      "description": "Sin flotabilidad, el fenómeno del punto de humo puede quedar dominado por las pérdidas radiativas cuando la velocidad global de la llama es baja. En esas condiciones la llama se extingue en la punta y deja escapar hollín.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 8,
+          "quote": "The removal of buoyancy induced acceleration can cause the smoke point phenomenon to be dominated by radiative heat losses for conditions of low overall flame velocity."
+        },
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 8,
+          "quote": "Under these conditions the flame extinguishes at the flame tip allowing soot to be emitted."
+        }
+      ],
+      "explanation": "El documento resume resultados previos del experimento LSP y explica el mecanismo de emisión de hollín por extinción en la punta, relevante para el humo en una nave."
+    },
+    {
+      "title": "Orden de tendencia a producir hollín entre combustibles y excepción del propano",
+      "description": "La tendencia a producir hollín aumenta del propano al etileno, al 50% propileno, al 75% propileno y al propileno. Con el quemador de 0.76 mm el etileno tuvo un punto de humo más largo que el propano. Las conclusiones finales ordenan etileno < propano, lo que no coincide con este pasaje.",
+      "evidence_status": "supported",
+      "confidence": "medium",
+      "citations": [
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 22,
+          "quote": "generally increases from propane to ethylene, to 50% propylene, to 75% propylene, and to propylene."
+        },
+        {
+          "psi_id": "PSI-107",
+          "doi": "10.60555/9kbh-e962",
+          "page": 22,
+          "quote": "The only exception was that, for the 0.76 mm burner, ethylene has a longer smoke point length than propane."
+        }
+      ],
+      "explanation": "Los pasajes dan el orden general y la excepción observada. La discrepancia con las conclusiones, donde etileno y propano aparecen intercambiados, sugiere prudencia al comparar combustibles."
+    },
+    {
+      "title": "Datos insuficientes sobre oxígeno, presión y materiales sólidos",
+      "description": "El documento no establece cómo cambian el punto de humo o la propagación de llama con la concentración de oxígeno, la presión o materiales sólidos. Solo estudia chorros de combustible gaseoso en aire de cabina.",
+      "evidence_status": "insufficient_data",
+      "confidence": null,
+      "citations": [],
+      "explanation": "Los experimentos variaron combustible, diámetro del quemador y velocidad del co-flujo, pero no el oxígeno ni la presión, y no incluyeron materiales sólidos. Por eso no se pueden sacar conclusiones sobre esos temas."
+    }
+  ]
+}
