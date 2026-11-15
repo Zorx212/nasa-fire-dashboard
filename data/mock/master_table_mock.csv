@@ -1,0 +1,11 @@
+experiment_id,psi_id,doi,license,title,material_or_fuel,material_type,o2_percent,pressure_kpa,flow_velocity,gravity_level,flame_outcome,flame_spread_rate,spread_rate_unit,source_file,source_page,notes
+M-001,PSI-MOCK-A,10.0000/mock-a,CC0-1.0,Mock solid flame spread A,PMMA sheet,sólido,21,101.3,5,0,propagó,1.2,mm/s,mock_a.csv,12,DATOS DE EJEMPLO
+M-002,PSI-MOCK-A,10.0000/mock-a,CC0-1.0,Mock solid flame spread A,PMMA sheet,sólido,30,101.3,5,0,propagó,3.4,mm/s,mock_a.csv,14,DATOS DE EJEMPLO
+M-003,PSI-MOCK-A,10.0000/mock-a,CC0-1.0,Mock solid flame spread A,PMMA sheet,sólido,21,70,10,0,propagó,0.9,mm/s,mock_a.csv,15,DATOS DE EJEMPLO
+M-004,PSI-MOCK-B,10.0000/mock-b,CC0-1.0,Mock cellulose extinction B,Cellulose fabric,sólido,21,101.3,20,0,se extinguió,,mm/s,mock_b.csv,8,DATOS DE EJEMPLO
+M-005,PSI-MOCK-B,10.0000/mock-b,CC0-1.0,Mock cellulose extinction B,Cellulose fabric,sólido,25,70,20,0,propagó,0.6,mm/s,mock_b.csv,9,DATOS DE EJEMPLO
+M-006,PSI-MOCK-B,10.0000/mock-b,CC0-1.0,Mock cellulose extinction B,Cellulose fabric,sólido,34,34.5,10,0,propagó,2.1,mm/s,mock_b.csv,11,DATOS DE EJEMPLO
+M-007,PSI-MOCK-C,10.0000/mock-c,CC0-1.0,Mock gas flames C,Methane,gas,21,101.3,,0,propagó,,mm/s,mock_c.csv,5,DATOS DE EJEMPLO
+M-008,PSI-MOCK-C,10.0000/mock-c,CC0-1.0,Mock gas flames C,Methane,gas,30,101.3,,0,se extinguió,,mm/s,mock_c.csv,6,DATOS DE EJEMPLO
+M-009,PSI-MOCK-D,10.0000/mock-d,CC0-1.0,Mock silicone spread D,Silicone-coated wire,sólido,30,50,15,0,propagó,2.8,mm/s,mock_d.csv,20,DATOS DE EJEMPLO
+M-010,PSI-MOCK-D,10.0000/mock-d,CC0-1.0,Mock silicone spread D,Silicone-coated wire,sólido,40,101.3,15,0,propagó,5.5,mm/s,mock_d.csv,22,DATOS DE EJEMPLO
