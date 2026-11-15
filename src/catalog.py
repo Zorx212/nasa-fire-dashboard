@@ -1,7 +1,18 @@
 import csv
+import re
 from pathlib import Path
 
 REQUIRED_COLUMNS = ("psi_id", "doi")
+
+# "https://doi.org/10.1/x", "http://dx.doi.org/10.1/x" or "doi:10.1/x".
+_DOI_PREFIX = re.compile(
+    r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE
+)
+
+
+def clean_doi(doi: str) -> str:
+    """Return the bare DOI ("10.xxxx/...") without URL or "doi:" prefix."""
+    return _DOI_PREFIX.sub("", doi.strip()).strip()
 
 
 def _read_rows(catalog_path: Path) -> tuple[list[str], list[dict]]:
@@ -53,7 +64,7 @@ def load_catalog(catalog_path: Path) -> dict[str, str]:
 
     for row in rows:
         psi_id = (row["psi_id"] or "").strip()
-        doi = (row["doi"] or "").strip()
+        doi = clean_doi(row["doi"] or "")
 
         if not psi_id or not doi:
             continue

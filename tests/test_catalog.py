@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from src.catalog import get_doi, load_catalog
+from src.catalog import clean_doi, get_doi, load_catalog
 
 
 def write_csv(path: Path, content: str, encoding: str = "utf-8") -> Path:
@@ -126,3 +126,47 @@ def test_windows_line_endings_are_accepted(tmp_path: Path) -> None:
 def test_directory_instead_of_file_raises_clear_error(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         load_catalog(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "10.1234/abc",
+        "  10.1234/abc  ",
+        "https://doi.org/10.1234/abc",
+        "http://dx.doi.org/10.1234/abc",
+        "HTTPS://DOI.ORG/10.1234/abc",
+        "doi:10.1234/abc",
+        "DOI: 10.1234/abc",
+    ],
+)
+def test_clean_doi_returns_the_bare_identifier(raw: str) -> None:
+    assert clean_doi(raw) == "10.1234/abc"
+
+
+def test_clean_doi_keeps_a_doi_that_contains_doi_org_inside() -> None:
+    assert clean_doi("10.1234/see-doi.org/x") == "10.1234/see-doi.org/x"
+
+
+def test_catalog_returns_clean_dois_and_same_doi_in_two_forms_is_not_a_conflict(
+    tmp_path: Path,
+) -> None:
+    csv_path = write_csv(
+        tmp_path / "catalog.csv",
+        "psi_id,doi\n"
+        "PSI-107,https://doi.org/10.1234/abc\n"
+        "PSI-107,10.1234/abc\n"
+        "PSI-108,doi:10.1234/def\n",
+    )
+    catalog = load_catalog(csv_path)
+
+    assert get_doi("PSI-107", catalog) == "10.1234/abc"
+    assert get_doi("PSI-108", catalog) == "10.1234/def"
+
+
+def test_url_with_no_identifier_counts_as_not_in_catalog(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "catalog.csv", "psi_id,doi\nPSI-107,https://doi.org/\n"
+    )
+
+    assert get_doi("PSI-107", load_catalog(csv_path)) is None
