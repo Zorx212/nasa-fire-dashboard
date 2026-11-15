@@ -53,7 +53,7 @@ def fmt_spread(r):
 
 
 body = (
-    line("Material", lambda r: f'<b>{E(ui.clean_str(r.get("material_or_fuel")))}</b> ({E(ui.clean_str(r.get("material_type")))})')
+    line("Material", lambda r: f'<b>{E(ui.clean_str(r.get("material_or_fuel")))}</b> ({E(ui.mat_label(r.get("material_type")))})')
     + line("Oxígeno (%)", lambda r: f'<span class="n">{ui.num(r.get("o2_percent"), 1, "% O₂")}</span>')
     + line("Presión (kPa)", lambda r: f'<span class="n">{ui.num(r.get("pressure_kpa"), 1, " kPa")}</span>')
     + line("Flujo / Gravedad", lambda r: f'<span class="n">{ui.num(r.get("flow_velocity"), 1, " cm/s")} · {ui.fmt_gravity(r.get("gravity_level"))}</span>')
@@ -89,6 +89,7 @@ with left_col:
         txt_vals = ["" if pd.isna(v) else f"{float(v):.{dec}f}{unit_lbl}" for v in raw_vals]
         finite_vals = [v for v in y_vals if v is not None]
         y_max = max(finite_vals) * 1.28 if finite_vals and max(finite_vals) > 0 else 10.0
+        y_min = min(0.0, min(finite_vals) * 1.25) if finite_vals else 0.0
 
         fig_c = go.Figure(
             go.Bar(
@@ -113,7 +114,7 @@ with left_col:
                 )
         fig_c.update_layout(
             title=f"{title_lbl} ({unit_lbl.strip()})",
-            yaxis=dict(range=[0, y_max], title=""),
+            yaxis=dict(range=[y_min, y_max], title=""),
             xaxis=dict(title=""),
             showlegend=False,
             margin=dict(l=6, r=6, t=34, b=6),
@@ -135,10 +136,11 @@ with right_col:
         unit_str = next(iter(units_present), ui.clean_str(sel.iloc[0].get("spread_rate_unit"), "mm/s"))
         sp_raw = [pd.to_numeric(pd.Series([sel.loc[eid].get("flame_spread_rate")]), errors="coerce").iloc[0] for eid in chosen]
         sp_y = [None if pd.isna(v) else float(v) for v in sp_raw]
-        sp_outcomes = [ui.clean_str(sel.loc[eid].get("flame_outcome"), "Sin dato") for eid in chosen]
+        sp_raw_outcomes = [ui.clean_str(sel.loc[eid].get("flame_outcome"), "Sin dato") for eid in chosen]
+        sp_outcomes = [ui.outcome_label(o, "Sin dato") for o in sp_raw_outcomes]
         sp_colors = [
             "#B91C1C" if ui.kind(o) == "dg" else "#15803D" if ui.kind(o) == "ok" else "#1D4ED8"
-            for o in sp_outcomes
+            for o in sp_raw_outcomes
         ]
         sp_texts = [
             "" if pd.isna(v) else f"{float(v):.2f} {unit_str} · {o}"

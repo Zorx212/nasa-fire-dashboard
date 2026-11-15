@@ -3,13 +3,13 @@ from html import escape as E
 import streamlit as st
 
 import ui
-from data_loader import citation, load_insights, load_master, mock_banner
+from data_loader import load_master, mock_banner
 
 ui.setup("Insights")
 df, using_mock_df = load_master()
 ui.sidebar(df, using_mock_df)
 ui.tabs(2)
-raw_insights, using_mock = load_insights()
+raw_insights, using_mock = ui.load_insights_any()
 mock_banner(using_mock)
 st.caption("Cada afirmación muestra su fuente. Respuestas precalculadas: no se llama a ningún LLM desde la app.")
 
@@ -96,4 +96,4 @@ for idx, it in enumerate(items):
             with st.expander("Ver cita textual del reporte"):
                 for c in it["cites"]:
                     q_txt = ui.clean_str(c.get("quote") or c.get("text"), "(sin cita textual)")
-                    st.markdown(f"> {E(q_txt)}  \n{citation(c)}")
+                    st.markdown(f"> {E(q_txt)}  \n{ui.cite_md(c)}")

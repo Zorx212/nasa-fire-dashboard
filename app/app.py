@@ -1,11 +1,11 @@
 import streamlit as st
 
 import ui
-from data_loader import load_insights, load_master, mock_banner
+from data_loader import load_master, mock_banner
 
 ui.setup("Flame in Freefall")
 df, using_mock = load_master()
-raw_insights, insights_mock = load_insights()
+raw_insights, insights_mock = ui.load_insights_any()
 insights_list, _ = ui.extract_insights(raw_insights)
 f, _ = ui.sidebar(df, using_mock)
 ui.tabs(-1)

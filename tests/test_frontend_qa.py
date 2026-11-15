@@ -32,14 +32,28 @@ class TestFrontendHelpers(unittest.TestCase):
         self.assertEqual(ui.clean_str(float("nan")), "—")
         self.assertIn("sin DOI", ui.doi_pill(float("nan")))
 
-    def test_scope_label_translates_to_spanish(self):
-        """Las etiquetas de alcance se traducen al español solo en presentación."""
+    def test_scope_and_domain_labels_translate_to_spanish(self):
+        """Las etiquetas de alcance, material y resultado se traducen al español en presentación."""
         self.assertEqual(ui.scope_label("todos"), "Todos")
         self.assertEqual(ui.scope_label("experiment"), "Experimento")
         self.assertEqual(ui.scope_label("comparison"), "Comparación")
+        self.assertEqual(ui.mat_label("solid"), "Sólido")
+        self.assertEqual(ui.mat_label("liquid"), "Líquido")
+        self.assertEqual(ui.outcome_label("self_extinguished"), "Se autoextinguió")
+        self.assertEqual(ui.outcome_label("flow_terminated"), "Flujo detenido")
+        self.assertEqual(ui.fmt_gravity("microgravity"), "0g")
 
     def test_extract_and_norm_insights_both_formats(self):
         """Soporta tanto lista mock (claims/note) como dict InsightsDocument (schemas.py)."""
+        legacy_list = [
+            {"id": "I-1", "title": "T1", "confidence": "alta", "claims": [{"text": "Afirmación", "psi_id": "PSI-107", "doi": "10.1/a", "page": 3}]},
+            {"id": "I-3", "title": "Sin evidencia", "confidence": "baja", "claims": [], "note": "No hay datos suficientes."},
+        ]
+        items_legacy, meta_legacy = ui.extract_insights(legacy_list)
+        self.assertEqual(len(items_legacy), 2)
+        self.assertEqual(meta_legacy, {})
+        self.assertEqual(ui.norm_insight(items_legacy[1])["st"], "w")
+
         mock_path = ROOT / "data" / "mock" / "insights_mock.json"
         sample_path = ROOT / "data" / "processed" / "insights.sample.json"
 
@@ -47,7 +61,7 @@ class TestFrontendHelpers(unittest.TestCase):
             raw_mock = json.load(f)
         items_mock, meta_mock = ui.extract_insights(raw_mock)
         self.assertEqual(len(items_mock), 3)
-        self.assertEqual(meta_mock, {})
+        self.assertIsInstance(meta_mock, dict)
         norm_empty = ui.norm_insight(items_mock[2])
         self.assertEqual(norm_empty["st"], "w")
         self.assertIn("no hay datos suficientes", norm_empty["text"].lower())

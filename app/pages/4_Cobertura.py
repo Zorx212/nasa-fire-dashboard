@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import ui
-from data_loader import coverage_grid, load_master, mock_banner
+from data_loader import load_master, mock_banner
 
 ui.setup("Cobertura")
 df, using_mock = load_master()
@@ -28,7 +28,7 @@ coord_groups = (
     .apply(
         lambda grp: "<br>".join(
             f"• {ui.clean_str(r.get('experiment_id'))} ({ui.clean_str(r.get('psi_id'))}) — "
-            f"{ui.clean_str(r.get('material_or_fuel'))} [{ui.clean_str(r.get('material_type'))}] · {ui.clean_str(r.get('flame_outcome'))}"
+            f"{ui.clean_str(r.get('material_or_fuel'))} [{ui.mat_label(r.get('material_type'))}] · {ui.outcome_label(r.get('flame_outcome'))}"
             for _, r in grp.iterrows()
         ),
         include_groups=False,
@@ -37,7 +37,15 @@ coord_groups = (
 )
 coord_counts = valid.groupby(["o2_percent", "pressure_kpa"]).size().to_dict()
 
-palette = {"sólido": ("#E84C22", "circle"), "solido": ("#E84C22", "circle"), "gas": ("#1D4ED8", "diamond")}
+palette = {
+    "sólido": ("#E84C22", "circle"),
+    "solido": ("#E84C22", "circle"),
+    "solid": ("#E84C22", "circle"),
+    "gas": ("#1D4ED8", "diamond"),
+    "líquido": ("#0F766E", "square"),
+    "liquido": ("#0F766E", "square"),
+    "liquid": ("#0F766E", "square"),
+}
 fig = go.Figure()
 mat_types = list(dict.fromkeys(valid["material_type"].dropna().astype(str)))
 for t in mat_types:
@@ -58,7 +66,7 @@ for t in mat_types:
             x=d["o2_percent"],
             y=d["pressure_kpa"],
             mode="markers",
-            name=t.capitalize(),
+            name=ui.mat_label(t),
             marker=dict(color=col, size=sizes, symbol=sym, line=dict(width=1.5, color="#FFFFFF"), opacity=0.92),
             text=hover_texts,
             hovertemplate="%{text}<extra></extra>",
@@ -97,13 +105,14 @@ for name, fill, line_col, ann_x, ann_y, x_anc in zone_styles:
         borderpad=3,
     )
 
+y_top = max(118.0, float(valid["pressure_kpa"].max()) * 1.08) if not valid.empty else 118.0
 fig = ui.style_fig(fig, 440)
 fig.update_layout(
     title="Mapa 2D · Oxígeno (%) vs Presión (kPa)",
     xaxis_title="Oxígeno (%)",
     yaxis_title="Presión (kPa)",
     xaxis=dict(range=[-2, 103]),
-    yaxis=dict(range=[-4, 118]),
+    yaxis=dict(range=[-4, y_top]),
     legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="left", x=0, title_text=""),
     margin=dict(l=10, r=12, t=38, b=52),
 )
@@ -129,7 +138,8 @@ c3.markdown(
 )
 
 with st.expander("Malla de cobertura (conteos por bin)"):
-    grid = coverage_grid(df)
+    grid, provisional_cov = ui.coverage_df(df)
+    ui.provisional_notice(provisional_cov, "Cobertura", "src/coverage.py")
     st.dataframe(grid, width="stretch")
     gaps = [(r, c) for r in grid.index for c in grid.columns if grid.loc[r, c] == 0]
     st.write(f"{len(gaps)} combinaciones sin ningún experimento.")

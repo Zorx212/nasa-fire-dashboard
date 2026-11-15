@@ -5,8 +5,26 @@ from html import escape as E
 import pandas as pd
 import streamlit as st
 
+import data_loader as _dl
 from data_loader import DEFAULT_WEIGHTS
 
+MAT_LABELS = {  # solo presentación: el valor original de material_type no se modifica
+    "gas": "Gas",
+    "solid": "Sólido",
+    "sólido": "Sólido",
+    "solido": "Sólido",
+    "liquid": "Líquido",
+    "líquido": "Líquido",
+    "liquido": "Líquido",
+}
+OUTCOME_LABELS = {  # solo presentación: kind() sigue usando el texto original
+    "self_extinguished": "Se autoextinguió",
+    "extinguished": "Se extinguió",
+    "flow_terminated": "Flujo detenido",
+    "propagated": "Propagó",
+    "sustained": "Llama sostenida",
+    "no_ignition": "Sin ignición",
+}
 SCEN = {  # zonas objetivo: o2 (%), presion (kPa) — supuestos del equipo pendientes de validar
     "Base Lunar / Rover": {"o2": (30, 60), "p": (0, 70.3), "desc": "O₂ 30–60% · ≤70.3 kPa"},
     "Traje Espacial": {"o2": (90, 100), "p": (0, 35), "desc": "O₂ 90–100% · ≤35 kPa"},
@@ -855,10 +873,13 @@ def num(v, d=1, u=""):
 
 
 def fmt_gravity(v):
-    """Formatea gravity_level de forma limpia."""
+    """Formatea gravity_level de forma limpia (soporta numérico o etiquetas como 'microgravity')."""
+    raw = clean_str(v, "")
+    if raw.lower() in ("microgravity", "microgravedad", "ug", "μg", "0g"):
+        return "0g"
     val = pd.to_numeric(pd.Series([v]), errors="coerce").iloc[0]
     if pd.isna(val):
-        return "—"
+        return raw if raw else "—"
     return f"{float(val):g}g"
 
 
@@ -875,11 +896,12 @@ def kind(o):
     if o is None or pd.isna(o):
         return "bl"
     o_norm = str(o).lower().replace("ó", "o").replace("í", "i")
+    negations = ("no propag", "not ", "no se", "non-", "no_", "no ignit", "self_ext", "self-ext")
     if any(k in o_norm for k in ("propag", "spread", "sustain", "ignit", "burn")) and not any(
-        k in o_norm for k in ("no propag", "not ", "no se", "non-")
+        k in o_norm for k in negations
     ):
         return "dg"
-    if any(k in o_norm for k in ("extin", "quench", "no propag", "not ", "no se", "self-ext")):
+    if any(k in o_norm for k in ("extin", "quench", "no propag", "not ", "no se", "self-ext", "self_ext", "no_ignit")):
         return "ok"
     return "bl"
 
@@ -893,9 +915,92 @@ def outcome_counts(series):
     return p, x, pp
 
 
+def outcome_known(series):
+    """(ensayos con resultado registrado, total) para explicar en qué se basa un porcentaje."""
+    s = series if isinstance(series, pd.Series) else pd.Series(series)
+    return int(s.map(lambda v: clean_str(v, "") != "").sum()), int(len(s))
+
+
+def outcome_label(o, default="Sin dato"):
+    """Traduce valores de flame_outcome tipo snake_case (datos reales) solo para mostrar."""
+    raw = clean_str(o, "")
+    if not raw:
+        return default
+    key = raw.strip().lower()
+    if key in OUTCOME_LABELS:
+        return OUTCOME_LABELS[key]
+    return raw.replace("_", " ").capitalize() if "_" in raw else raw
+
+
+def mat_label(m, default="—"):
+    """Traduce material_type (gas/solid/liquid) al español solo para mostrar."""
+    raw = clean_str(m, "")
+    if not raw:
+        return default
+    return MAT_LABELS.get(raw.strip().lower(), raw.capitalize())
+
+
 def badge(t, k=None):
-    txt = clean_str(t, default="Sin dato")
-    return f'<span class="badge {k or kind(txt)}">{E(txt)}</span>'
+    raw = clean_str(t, default="Sin dato")
+    txt = outcome_label(raw)
+    return f'<span class="badge {k or kind(raw)}">{E(txt)}</span>'
+
+
+# --- Compatibilidad con ambas versiones de app/data_loader.py -------------------
+# La versión original devuelve df / (lista, usando_mock); la del adaptador oficial
+# (rama fix/insights-adapter) devuelve (df, provisional) / (lista, meta, usando_mock).
+# El frontend acepta ambas para no romperse según el orden en que se integren los PRs.
+
+def _unwrap(res):
+    if isinstance(res, tuple):
+        return res[0], bool(res[1]) if len(res) > 1 else False
+    return res, False
+
+
+def rank_df(df, weights):
+    """Devuelve (df_rankeado, provisional) con cualquier versión de data_loader.rank."""
+    safe_w = weights if sum(weights.values()) > 0 else dict(DEFAULT_WEIGHTS)
+    return _unwrap(_dl.rank(df, safe_w))
+
+
+def coverage_df(df):
+    """Devuelve (malla_de_conteos, provisional) con cualquier versión de data_loader.coverage_grid."""
+    return _unwrap(_dl.coverage_grid(df))
+
+
+def provisional_notice(provisional, what="Ranking", module="src/ranking.py"):
+    if not provisional:
+        return
+    fn = getattr(_dl, "provisional_banner", None)
+    if callable(fn):
+        fn(provisional, what, module)
+    else:
+        st.warning(f"{what} provisional: todavía no existe {module}. Los puntajes son de relleno.")
+
+
+def load_insights_any():
+    """Devuelve (raw, usando_mock), donde raw es lista o dict {'insights': [...], meta...}."""
+    fmt_error = getattr(_dl, "InsightsFormatError", None)
+    errors = (fmt_error,) if isinstance(fmt_error, type) else ()
+    try:
+        res = _dl.load_insights()
+    except errors as e:  # solo el error de formato del adaptador oficial
+        st.error(f"insights.json tiene un formato inesperado: {e}")
+        return [], False
+    if isinstance(res, tuple) and len(res) == 3:
+        items, meta, using_mock = res
+        return {**(meta or {}), "insights": items}, using_mock
+    return res
+
+
+def cite_md(c):
+    """Línea de cita PSI · DOI · página usando el helper disponible en data_loader."""
+    fn = getattr(_dl, "citation", None) or getattr(_dl, "citation_line", None)
+    if callable(fn):
+        return fn(c)
+    doi = clean_str(c.get("doi"), "")
+    link = f"[{doi}](https://doi.org/{doi})" if doi else "sin DOI"
+    return f"`{clean_str(c.get('psi_id'), '?')}` · {link}"
 
 
 def card(label, value, sub="", kpi=True):
@@ -936,13 +1041,23 @@ def norm_insight(i):
     else:
         raw_cites = i.get("citations") or []
         cites = [c for c in raw_cites if isinstance(c, dict)]
-        desc = clean_str(i.get("description"), "Sin descripción disponible.")
+        none = i.get("evidence_status") == "insufficient_data" or len(cites) == 0
+        default_desc = "No hay datos suficientes en los reportes consultados." if none else "Sin descripción disponible."
+        desc = clean_str(i.get("description"), default_desc)
         explanation = clean_str(i.get("explanation"), "")
         text = E(desc)
-        none = i.get("evidence_status") == "insufficient_data" or len(cites) == 0
     st_ = "w" if none else ("" if conf in ("alta", "high") else "b")
     lab = {"w": "No hay datos suficientes", "": "Evidencia sólida", "b": "Evidencia limitada"}[st_]
-    psi_ids = i.get("psi_ids") or list(dict.fromkeys(clean_str(c.get("psi_id"), "") for c in cites if clean_str(c.get("psi_id"), "")))
+    raw_pids = []
+    if isinstance(i.get("psi_ids"), list):
+        raw_pids.extend(clean_str(p, "") for p in i["psi_ids"])
+    if clean_str(i.get("psi_id"), ""):
+        raw_pids.append(clean_str(i.get("psi_id"), ""))
+    raw_pids.extend(clean_str(c.get("psi_id"), "") for c in cites)
+    psi_ids = list(dict.fromkeys(p for p in raw_pids if p))
+    scope_val = clean_str(i.get("scope"), "")
+    if not scope_val and "claims" not in i:
+        scope_val = "comparison" if len(psi_ids) > 1 else "experiment"
     return dict(
         title=clean_str(i.get("title") or i.get("id"), "Hallazgo"),
         text=text,
@@ -950,7 +1065,7 @@ def norm_insight(i):
         cites=cites,
         st=st_,
         lab=lab,
-        scope=clean_str(i.get("scope"), ""),
+        scope=scope_val,
         psi_ids=psi_ids,
         kb={"": "ok", "b": "bl", "w": "wn"}[st_],
     )
@@ -1093,7 +1208,7 @@ def sidebar(df, using_mock):
             types,
             key="f_mat",
             horizontal=True,
-            format_func=lambda t: t.capitalize() if t != "Todos" else t,
+            format_func=lambda t: mat_label(t) if t != "Todos" else t,
             on_change=_sync,
         )
         rng = {}

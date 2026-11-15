@@ -4,7 +4,7 @@ import plotly.express as px
 import streamlit as st
 
 import ui
-from data_loader import load_master, mock_banner, rank
+from data_loader import load_master, mock_banner
 
 ui.setup("Ranking")
 df, using_mock = load_master()
@@ -12,6 +12,9 @@ f, w = ui.sidebar(df, using_mock)
 ui.tabs(0)
 mock_banner(using_mock)
 scen = st.session_state.get("scen")
+
+if sum(w.values()) <= 0:
+    st.info("Todos los pesos del ranking están en 0. Sube al menos un criterio en «Ajustar pesos del ranking» para priorizar.")
 
 using_nearest = False
 if f.empty:
@@ -24,7 +27,9 @@ if f.empty:
     base_df = df if mat_filter == "Todos" else df[df["material_type"].astype(str) == mat_filter]
     f = ui.nearest(base_df if not base_df.empty else df, scen)
 
-ranked = rank(f, w).reset_index(drop=True)
+ranked_df, provisional = ui.rank_df(f, w)
+ui.provisional_notice(provisional, "Ranking", "src/ranking.py")
+ranked = ranked_df.reset_index(drop=True)
 _, _, pp = ui.outcome_counts(f["flame_outcome"])
 
 c1, c2, c3 = st.columns(3)
@@ -77,7 +82,7 @@ for i, r in ranked.head(15).iterrows():
     score = 0 if score_val != score_val else max(0, min(100, round(100 * float(score_val))))
     psi_id = E(ui.clean_str(r.get("psi_id")))
     mat = E(ui.clean_str(r.get("material_or_fuel")))
-    mtype = E(ui.clean_str(r.get("material_type")))
+    mtype = E(ui.mat_label(r.get("material_type")))
     row_cls = ' class="top-row"' if i == 0 else ""
     rows += (
         f"<tr{row_cls}>"
