@@ -25,6 +25,9 @@ SOFT_HYPHEN = chr(0x00AD)
 LIGATURE_FFI = chr(0xFB03)
 LIGATURE_FI = chr(0xFB01)
 SUBSCRIPT_TWO = chr(0x2082)
+SUPERSCRIPT_THREE = chr(0x00B3)
+ZERO_WIDTH_SPACE = chr(0x200B)
+MINUS_SIGN = chr(0x2212)
 
 
 @pytest.fixture(scope="module")
@@ -158,10 +161,24 @@ def test_numeric_range_split_across_lines_is_never_joined_into_one_number() -> N
 def test_dash_at_line_end_is_not_a_split_word() -> None:
     page = "the flame" + EM_DASH + "\nthe smoke"
 
+    assert passes("the flame" + EM_DASH + " the smoke", page)
     assert not passes("the flamethe smoke", page)
 
 
+def test_em_dash_in_prose_does_not_glue_the_next_word() -> None:
+    page = "the flame" + EM_DASH + "the smoke rose"
+
+    assert passes("the smoke rose", page)
+    assert passes("the flame" + EM_DASH + "the smoke", page)
+
+
 def test_quote_cannot_span_two_pages() -> None:
+    assert passes(
+        "and the smoke rose slowly",
+        "at that point the flame went out",
+        "and the smoke rose slowly",
+        page=2,
+    )
     assert not passes(
         "the flame went out and the smoke rose",
         "at that point the flame went out",
@@ -239,3 +256,113 @@ def test_normalize_collapses_whitespace_and_merges_hyphenated_lines() -> None:
     assert normalize("20-\n24", join_hyphenated=True) == "20-24"
     assert normalize("a well-known fact") == "a well-known fact"
     assert normalize("a well-known fact", join_hyphenated=True) == "a well-known fact"
+
+
+# --- Numbers, signs, ranges and compounds are never cut ---
+
+
+def test_quote_cannot_start_or_end_inside_a_decimal_number() -> None:
+    page = "a gap of 1.6 mm and 0.41 mm was seen"
+
+    assert passes("a gap of 1.6 mm and 0.41 mm", page)
+    assert not passes("6 mm and 0.41 mm", page)
+    assert not passes("41 mm was seen", page)
+    assert not passes("a gap of 1", page)
+    assert not passes("a gap of 1.", page)
+    assert not passes(".6 mm and", page)
+
+
+def test_quote_cannot_drop_the_sign_of_a_number() -> None:
+    page = "dropped to -5 K today"
+
+    assert passes("dropped to -5 K today", page)
+    assert passes("-5 K today", page)
+    assert not passes("5 K today", page)
+
+
+def test_quote_cannot_cut_a_numeric_range() -> None:
+    page = "values of 20-24 mm"
+
+    assert passes("values of 20-24 mm", page)
+    assert not passes("values of 20", page)
+    assert not passes("24 mm", page)
+
+
+def test_quote_cannot_cut_a_hyphenated_compound(psi107) -> None:
+    page = "a non-buoyant jet"
+
+    assert passes("a non-buoyant jet", page)
+    assert not passes("buoyant jet", page)
+    assert not passes("a non", page)
+    # Same on the real PSI-107 page 2 ("non-" / "buoyant" across two lines).
+    assert not verify_citation(
+        cite(2, "buoyant laminar jet diffusion flames"), psi107
+    ).ok
+
+
+def test_superscripts_are_not_plain_digits() -> None:
+    page = "it scales as 10" + SUPERSCRIPT_THREE + " per second"
+
+    assert passes("it scales as 10" + SUPERSCRIPT_THREE + " per second", page)
+    assert not passes("it scales as 103 per second", page)
+
+
+def test_zero_width_space_next_to_a_soft_hyphen_still_joins_the_word() -> None:
+    page = "a non" + SOFT_HYPHEN + ZERO_WIDTH_SPACE + "\nbuoyant flame"
+
+    assert passes("a non-buoyant flame", page)
+
+
+def test_malformed_pages_raise_clear_errors() -> None:
+    with pytest.raises(ValueError, match="dict"):
+        verify_citation(cite(1, "x"), ["not a dict"])
+
+    with pytest.raises(ValueError, match="dict"):
+        verify_citation(cite(1, "x"), {"pages": ["not a dict"]})
+
+
+# --- A model may flatten a line break into a plain space ---
+
+
+def test_quote_with_hyphen_and_space_matches_a_word_split_across_lines(
+    psi107,
+) -> None:
+    assert verify_citation(
+        cite(2, "smoke points in non- buoyant laminar jet"), psi107
+    ).ok
+    assert verify_citation(
+        cite(7, "changed to a stand- alone investigation"), psi107
+    ).ok
+
+
+def test_flattened_numeric_range_is_still_one_range() -> None:
+    page = "values of 20-\n24 mm"
+
+    assert passes("values of 20- 24 mm", page)
+    assert not passes("values of 2024 mm", page)
+
+
+def test_quote_may_end_at_a_sentence_glued_to_a_footnote_marker() -> None:
+    # Real PSI-107 pattern: "...still air.5 The limited..."
+    page = "flames in still air.5 The limited extent.21 More text"
+
+    assert passes("flames in still air.", page)
+    assert passes("flames in still air", page)
+    assert passes("The limited extent.", page)
+    # A number cut after a digit-dot is still rejected.
+    assert not passes("a gap of 1.", "a gap of 1.6 mm")
+
+
+def test_en_dash_and_minus_sign_also_block_cutting_ranges_and_signs() -> None:
+    range_page = "values of 20" + EN_DASH + "24 mm"
+    sign_page = "dropped to " + MINUS_SIGN + "5 K today"
+
+    assert passes("values of 20-24 mm", range_page)
+    assert not passes("24 mm", range_page)
+    assert not passes("values of 20", range_page)
+    assert passes("dropped to -5 K today", sign_page)
+    assert not passes("5 K today", sign_page)
+
+
+def test_flattened_compound_in_the_middle_of_a_line_still_matches() -> None:
+    assert passes("a non- buoyant flame", "a non-buoyant flame")
