@@ -1,3 +1,6 @@
+from html import escape as E
+
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -6,36 +9,91 @@ from data_loader import load_master, mock_banner
 
 ui.setup("Cobertura")
 df, using_mock = load_master()
-ui.sidebar(df, using_mock)  # la cobertura evalúa TODOS los datos de la tabla maestra
+ui.sidebar(df, using_mock)  # la cobertura evalúa todos los datos de la tabla maestra
 ui.tabs(3)
 mock_banner(using_mock)
 
 nl = ui.zone_count(df, "Base Lunar / Rover")
-nt = ui.zone_count(df, "Traje Espacial")
-g = df["gravity_level"]
-n0, n1 = int((g == 0).sum()), int((g == 1).sum())
-npar = int(((g > 0) & (g < 1)).sum())
-if nl < 5 or npar == 0:
-    st.markdown(
-        f'<div class="ban">Vacío de datos detectado: {nl} ensayos en Base Lunar (30–60% O₂, ≤70.3 kPa), '
-        f'{nt} en Traje Espacial (90–100% O₂, ≤35 kPa) y {npar} ensayos en gravedad parcial real (1/6g · 3/8g).</div>',
-        unsafe_allow_html=True,
-    )
+g = pd.to_numeric(df["gravity_level"], errors="coerce") if "gravity_level" in df.columns else pd.Series(dtype=float)
+n0 = int((g == 0).sum()) if not g.empty else 0
+n1 = int((g == 1).sum()) if not g.empty else 0
+npar = int(((g > 0) & (g < 1)).sum()) if not g.empty else 0
 
-valid = df.dropna(subset=["o2_percent", "pressure_kpa"]).copy()
-coord_groups = (
-    valid.groupby(["o2_percent", "pressure_kpa"])
-    .apply(
-        lambda grp: "<br>".join(
-            f"• {ui.clean_str(r.get('experiment_id'))} ({ui.clean_str(r.get('psi_id'))}) — "
-            f"{ui.clean_str(r.get('material_or_fuel'))} [{ui.mat_label(r.get('material_type'))}] · {ui.outcome_label(r.get('flame_outcome'))}"
-            for _, r in grp.iterrows()
-        ),
-        include_groups=False,
-    )
-    .to_dict()
+hero_cls = "gap-hero has-data" if npar > 0 else "gap-hero"
+st.markdown(
+    f'<div class="{hero_cls}">'
+    f'<div class="gap-line">'
+    f'<span class="gap-num">{npar}</span>'
+    f'<span class="gap-unit">ensayos en gravedad parcial real (1/6 g · 3/8 g)</span>'
+    f'</div>'
+    f'<div class="gap-sub">{nl} ensayos dentro de Base Lunar / Rover (30–60 % O₂, hasta 70.3 kPa)</div>'
+    f'</div>',
+    unsafe_allow_html=True,
 )
-coord_counts = valid.groupby(["o2_percent", "pressure_kpa"]).size().to_dict()
+
+valid = df.copy()
+valid["o2_num"] = pd.to_numeric(valid["o2_percent"], errors="coerce")
+valid["pr_num"] = pd.to_numeric(valid["pressure_kpa"], errors="coerce")
+valid = valid.dropna(subset=["o2_num", "pr_num"]).copy()
+
+fig = go.Figure()
+
+zone_anchors = {
+    "Base Lunar / Rover": (45.0, 56.0, "center", "middle"),
+    "Traje Espacial": (99.5, 22.0, "right", "middle"),
+    "ISS / Tierra": (19.0, 93.5, "left", "top"),
+}
+for nombre, z in ui.SCEN.items():
+    x0, x1 = z["o2"]
+    y0, y1 = z["p"]
+    nz = ui.zone_count(df, nombre)
+    zx = [x0, x1, x1, x0, x0]
+    zy = [y0, y0, y1, y1, y0]
+    if nz == 0:
+        fig.add_trace(
+            go.Scatter(
+                x=zx,
+                y=zy,
+                mode="lines",
+                fill="toself",
+                fillpattern=dict(
+                    shape="/",
+                    size=7,
+                    solidity=0.25,
+                    fgcolor="#B91C1C",
+                    bgcolor="rgba(0,0,0,0)",
+                ),
+                line=dict(color="#B91C1C", width=1.6, dash="dash"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+    else:
+        fig.add_trace(
+            go.Scatter(
+                x=zx,
+                y=zy,
+                mode="lines",
+                fill="toself",
+                fillcolor="rgba(100,116,139,0.09)",
+                line=dict(color="#64748B", width=1.5, dash="dash"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+    ax, ay, x_anc, y_anc = zone_anchors.get(nombre, ((x0 + x1) / 2, (y0 + y1) / 2, "center", "middle"))
+    lbl = f"{nombre} · {nz} ensayos" if nz > 0 else f"{nombre} · sin ensayos"
+    fig.add_annotation(
+        x=ax,
+        y=ay,
+        xanchor=x_anc,
+        yanchor=y_anc,
+        text=lbl,
+        showarrow=False,
+        font=dict(size=12, color="#B91C1C" if nz == 0 else "#0F172A"),
+        bgcolor="rgba(255,255,255,0.88)",
+        borderpad=3,
+    )
 
 palette = {
     "sólido": ("#E84C22", "circle"),
@@ -46,93 +104,71 @@ palette = {
     "liquido": ("#0F766E", "square"),
     "liquid": ("#0F766E", "square"),
 }
-fig = go.Figure()
 mat_types = list(dict.fromkeys(valid["material_type"].dropna().astype(str)))
 for t in mat_types:
     d = valid[valid["material_type"].astype(str) == t]
     if d.empty:
         continue
     col, sym = palette.get(t.lower(), ("#0F766E", "square"))
-    sizes = [11 + 3 * (coord_counts.get((row["o2_percent"], row["pressure_kpa"]), 1) - 1) for _, row in d.iterrows()]
     hover_texts = [
-        f"<b>{ui.clean_str(row.get('experiment_id'))} · {ui.clean_str(row.get('psi_id'))}</b><br>"
-        f"O₂ {row['o2_percent']:.1f}% · {row['pressure_kpa']:.1f} kPa<br>"
-        f"<b>Ensayos en esta coordenada ({coord_counts.get((row['o2_percent'], row['pressure_kpa']), 1)}):</b><br>"
-        f"{coord_groups.get((row['o2_percent'], row['pressure_kpa']), '')}"
+        f"<b>{E(ui.clean_str(row.get('experiment_id')))} · {E(ui.clean_str(row.get('psi_id')))}</b><br>"
+        f"O₂: {row['o2_num']:.1f} % · Presión: {row['pr_num']:.1f} kPa<br>"
+        f"{E(ui.clean_str(row.get('material_or_fuel')))} · {E(ui.outcome_label(row.get('flame_outcome')))}"
         for _, row in d.iterrows()
     ]
     fig.add_trace(
         go.Scatter(
-            x=d["o2_percent"],
-            y=d["pressure_kpa"],
+            x=d["o2_num"],
+            y=d["pr_num"],
             mode="markers",
             name=ui.mat_label(t),
-            marker=dict(color=col, size=sizes, symbol=sym, line=dict(width=1.5, color="#FFFFFF"), opacity=0.92),
+            marker=dict(color=col, size=7, symbol=sym),
             text=hover_texts,
             hovertemplate="%{text}<extra></extra>",
         )
     )
 
-active_scen = st.session_state.get("scen")
-# Zonas y posición de anotaciones ancladas para que no se corten en 390px ni tapen puntos
-zone_styles = (
-    ("Base Lunar / Rover", "rgba(180,83,9,.11)", "#B45309", 45.0, 56.0, "center"),
-    ("Traje Espacial", "rgba(232,76,34,.11)", "#B91C1C", 99.0, 22.0, "right"),
-    ("ISS / Tierra", "rgba(29,78,216,.14)", "#1D4ED8", 24.5, 98.5, "left"),
-)
-for name, fill, line_col, ann_x, ann_y, x_anc in zone_styles:
-    z = ui.SCEN[name]
-    is_sel = active_scen == name
-    fig.add_shape(
-        type="rect",
-        x0=z["o2"][0],
-        x1=z["o2"][1],
-        y0=z["p"][0],
-        y1=z["p"][1],
-        fillcolor=fill,
-        line=dict(color=line_col, width=2.4 if is_sel else 1.6, dash="solid" if is_sel else "dash"),
-    )
-    fig.add_annotation(
-        x=ann_x,
-        y=ann_y,
-        xanchor=x_anc,
-        text=f"<b>{name}</b> ({ui.zone_count(df, name)})",
-        showarrow=False,
-        font=dict(size=10, color="#1E293B"),
-        bgcolor="rgba(255,255,255,.92)",
-        bordercolor=line_col,
-        borderwidth=1,
-        borderpad=3,
-    )
-
-y_top = max(118.0, float(valid["pressure_kpa"].max()) * 1.08) if not valid.empty else 118.0
-fig = ui.style_fig(fig, 440)
+y_top = min(135.0, max(115.0, float(valid["pr_num"].max()) * 1.08)) if not valid.empty else 115.0
+fig = ui.style_fig(fig, 420)
 fig.update_layout(
-    title="Mapa 2D · Oxígeno (%) vs Presión (kPa)",
+    title=None,
     xaxis_title="Oxígeno (%)",
     yaxis_title="Presión (kPa)",
     xaxis=dict(range=[-2, 103]),
     yaxis=dict(range=[-4, y_top]),
-    legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="left", x=0, title_text=""),
-    margin=dict(l=10, r=12, t=38, b=52),
+    legend=dict(
+        x=0.99,
+        y=0.98,
+        xanchor="right",
+        yanchor="top",
+        bgcolor="rgba(255,255,255,0.8)",
+        title_text="",
+    ),
+    margin=dict(l=10, r=10, t=12, b=36),
 )
-st.plotly_chart(fig, width="stretch")
-st.caption("Los rangos de los escenarios son supuestos del equipo pendientes de fuente y validación.")
 
-c1, c2, c3 = st.columns(3)
-c1.markdown(
-    ui.card("Microgravedad (0g) " + ui.badge("Cubierto", "ok"), f"{n0} ensayos", "Condición de caída libre / ISS"),
-    unsafe_allow_html=True,
-)
-c2.markdown(
-    ui.card("Gravedad normal (1g) " + ui.badge("Referencia", "bl"), f"{n1} ensayos", "Base de comparación terrestre"),
-    unsafe_allow_html=True,
-)
-c3.markdown(
-    ui.card(
-        "Gravedad parcial (1/6g · 3/8g) " + ui.badge("Brecha crítica" if npar == 0 else "Parcial", "wn"),
-        f"{npar} ensayos",
-        "Luna y Marte · pendiente misiones FM2 / LUCI" if npar == 0 else "Datos en gravedad reducida",
+with st.container(key="cov_map_ficha"):
+    st.markdown('<span class="tag">Mapa de cobertura</span>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:13px;font-weight:500;color:#0F172A;margin-bottom:4px">Oxígeno (%) frente a presión (kPa)</div>',
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(fig, width="stretch")
+    st.caption("Los rangos de los escenarios son supuestos del equipo pendientes de fuente y validación.")
+
+st.markdown(
+    ui.strip(
+        [
+            ("Microgravedad (0 g)", f"{n0} ensayos", '<span style="color:#0F766E;font-weight:600">Cubierto</span>' if n0 > 0 else "Sin registros"),
+            ("Gravedad normal (1 g)", f"{n1} ensayos", "Referencia"),
+            (
+                "Gravedad parcial (1/6 g · 3/8 g)",
+                f"{npar} ensayos",
+                '<span style="color:#B91C1C;font-weight:600">Brecha crítica</span>'
+                if npar == 0
+                else '<span style="color:#0F766E;font-weight:600">Cubierto</span>',
+            ),
+        ]
     ),
     unsafe_allow_html=True,
 )

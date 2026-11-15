@@ -1,44 +1,32 @@
-# Cambios de frontend · Flame in Freefall (vs. `main` en GitHub)
+# Registro de cambios de Frontend (`uri/frontend`)
 
-## Alcance y compatibilidad con `main`
+## 1. Dirección visual «fichas de ensayo» y paleta cerrada (`app/ui.py`)
+- **Lienzo y superficies:** Fondo `.stApp` sobre papel cuadriculado milimétrico (`120px` y `24px`, retícula `#0F172A` traslúcida sobre `#F6F7F9`). El panel lateral (`section[data-testid="stSidebar"]`) se mantiene blanco liso (`#FFFFFF`) con borde derecho `#DDE2E8`, botones de escenario con radio de `4px` y cero sombras.
+- **Paleta cerrada:** Únicamente `#0F172A` (tinta), `#F6F7F9` (papel), `#FFFFFF` (blanco), `#DDE2E8` (línea), `#64748B` (gris), `#E84C22` (llama), `#B91C1C` (propagó / vacío crítico), `#0F766E` (extinguió y evidencia), más `#1D4ED8` reservado solo para puntos `Gas` en Cobertura. Se eliminaron bordes de color laterales, fondos pastel en insignias, viñetas `"•"`, sombras y radios superiores a `4px`.
+- **Componentes en `app/ui.py`:**
+  - `ficha(tag, body_html)`: contenedor `.f` blanco sin redondeo con marcas de registro en las 4 esquinas y pestaña superior `.tag` en monoespaciado (`#0F172A` / `#FFFFFF`).
+  - `strip(cells)`: tira superior compartida de métricas separadas por divisores verticales de `1px` (`@media (max-width: 760px)` apilada a `1fr`).
+  - `dot_specs(rows)`: especificaciones técnicas con guía de puntos hasta el valor tabular a la derecha.
+  - `locator(df, hi, w=104, h=84, zone=None)`: minimapa SVG `O₂` (`0–100 %`) vs. presión (`0–105 kPa`) con la zona de escenario punteada, nube gris del catálogo y puntos destacados en `#E84C22` con anillo.
+  - `badge(t, k=None)`: glifo SVG de `14px` (punto sólido `#B91C1C` para propagación o anillo punteado `#0F766E` para extinción) sin fondo ni borde redondeado.
+  - `ev_meter(st_code)`: medidor de 3 barras de `16×6px` (`#0F766E` rellenas, `#94A3B8` contorno).
+  - `norm(i)` / `extract_insights(raw)`: mantiene compatibilidad con la lista mock (`app/data_loader.py`) y `InsightsDocument` (`src/insights/schemas.py`), devolviendo un único párrafo con superíndices `<sup>n</sup>` sin viñetas `"•"`.
 
-- **Base comparada:** Último estado de `main` en GitHub (que incluye el esqueleto inicial de `app/` y los avances de backend en `data/catalog.csv`, `src/llm/cache.py` y `tests/test_cache.py`).
-- **Archivos incluidos en este PR:** únicamente archivos de frontend y documentación QA (`.streamlit/config.toml`, `app/ui.py`, `app/app.py`, `app/pages/1_Ranking.py`, `app/pages/2_Comparacion.py`, `app/pages/3_Insights.py`, `app/pages/4_Cobertura.py`, `tests/test_frontend_qa.py`, `notes/frontend-change-log.md`, `notes/qa-report.md`).
-- **Cero conflictos con backend:** No se modificaron `app/data_loader.py`, `src/**`, `data/**` ni `requirements.txt`.
+## 2. Motor de transición fluida sin cortes (`_SMOOTH_BOOT_JS` y `setup()` en `app/ui.py`)
+- **Persistencia en `<head>`:** `setup(title)` inyecta `<span class="ff-boot"></span><script>...` (sin caracteres `<` literales dentro del script para evitar filtrado de DOMPurify), fijando `<link id="ff-fonts-link">` (`Barlow Semi Condensed`, `Inter`, `JetBrains Mono`) y `<style id="ff-head-css">` en `document.head`.
+- **Escudo de escenario y sidebar (`#ff-shield-host`) + compuerta de completitud (`poll()`):**
+  - Al cambiar de pestaña (`st.page_link`) o interactuar con controles de filtrado (botones de escenario, `st.radio` horizontal, `selectbox`/`multiselect` y sliders), `window.__ffSmooth` congela la vista saliente en `#ff-shield-host` (y el sidebar durante cambios de ruta), mantiene la altura mínima de `.block-container` para evitar colapsos y espera a que la nueva pestaña (`liveTab !== startTab`) o la nueva firma DOM (`curSig !== startSig`), todos los bloques `stHtml`, `stSkeleton` y gráficos Plotly `.main-svg` estén realmente montados antes de ejecutar una disolución cruzada simultánea (`145–195ms cubic-bezier(0.22, 1, 0.36, 1)`).
+  - En `cleanClone(origRoot, node)`, se preservan las dimensiones exactas (`width`/`max-width`/`min-width`) de los bloques flex/grid, se copian los bitmaps `<canvas>` (`drawImage`), se eliminan por completo los contenedores `stElementContainer` de inyección (`script`, `style`, `.ff-boot`) para mantener `0px` de desplazamiento vertical (`liveTop: 20 == shTop: 20`), y se desactivan re-animaciones dentro de `#ff-shield-host` para que los contadores `.cnt` conserven su valor final sin reiniciarse a `0`.
+  - Respuesta táctil inmediata (`0ms`, atributo `data-ff-opt`, limpiado solo en `#root`) al pulsar pestañas, botones de escenario y píldoras de radio.
+  - Apertura y cierre suave de citas `<details class="cite-det">` y expanders mediante `interpolate-size: allow-keywords`, `details::details-content` y Web Animations API sobre `.cite-q`.
 
-## Resumen de cambios desde `main`
+## 3. Reloj continuo $C^1$ del isotipo orbital (`app/ui.py`, `app/assets/`)
+- `_load_logo_svg(size=44)` conserva `app/assets/logo_animated.svg` (`44×44px` en sidebar) y `app/assets/logo.png` en pestaña.
+- `window.__ffSmooth` sincroniza en cada mutación del DOM el reloj SMIL (`svg.setCurrentTime`) y el desfase negativo de `.ff-fl` / `.ff-sp`, evitando que el punto orbital se reinicie a `t = 0` cuando React recrea el `<svg>` entre páginas o recargas.
+- Al seleccionar un escenario, `triggerBoost()` acelera suavemente el reloj SMIL en `+9.0s` (una vuelta orbital completa en 3D por detrás y por delante de la esfera a lo largo de la elipse a `-24°`) durante `900ms` con curva cúbica $C^1$-continua, mientras `.ff-orb` mantiene `ff-once-a` / `ff-once-b` en su plano sin deformar la elipse.
 
-### 1. Sistema de diseño e infraestructura visual (`app/ui.py` y `.streamlit/config.toml`)
-- **Tema y configuración (`.streamlit/config.toml`):** Tema claro cálido (`#F7F8FA`, primario `#E84C22`, texto `#0F172A`, tipografía `Space Grotesk` / `IBM Plex Sans` / `JetBrains Mono`) y `toolbarMode = "minimal"` para ocultar el botón «Deploy» manteniendo el botón `>>` del sidebar en móvil.
-- **Shell compartido (`ui.setup`, `ui.header`, `ui.tabs`, `ui.sidebar`):**
-  - Header superior con identidad **Flame in Freefall**, subtítulo técnico y pill contextual **Modo Demo** cuando `using_mock=True`.
-  - Navegación superior (`st.container(key="top_nav")`) con 5 pestañas (`Inicio`, `Ranking`, `Comparación`, `Insights`, `Cobertura`), altura uniforme (`36px` desktop / `32px` móvil) y fila horizontal sin apilamiento en pantallas `≤700px`.
-  - Sidebar unificado con filtros persistentes entre páginas (`_saved_filters`), selector segmentado de material dinámico según los valores presentes en el CSV, sliders de `O₂ (%)`, `Presión (kPa)` y `Flujo (cm/s)` con inclusión de filas `NaN`, presets de escenario (`ISS / Tierra`, `Base Lunar / Rover`, `Traje Espacial`) marcados como supuestos pendientes de validar, y sliders de pesos del ranking.
-- **Selectores CSS adaptados a Streamlit 1.67:**
-  - Controles `st.radio` horizontales estilizados como control segmentado tipo píldora ocultando el círculo nativo (`[data-testid="stRadioGroup"][data-orientation="horizontal"]`).
-  - Botones de escenario en sidebar estilizados mediante selectores descendientes compatibles con wrappers de tooltip (`[data-testid="stBaseButton-secondary"]` y `[data-testid="stBaseButton-primary"]`).
-  - Compactación del encabezado del sidebar (`[data-testid="stSidebarHeader"]`, `[data-testid="stLogoSpacer"]`).
-- **Animaciones y accesibilidad:**
-  - Detección de cambio de página (`_last_page != title`) para ejecutar animaciones de entrada solo al navegar a una vista nueva y desactivarlas (`animation: none !important`) al mover filtros/sliders.
-  - Respeto estricto a `@media (prefers-reduced-motion: reduce)` y transiciones suaves en gráficas Plotly (`300ms cubic-in-out`).
-  - Toast de bienvenida no bloqueante (`pointer-events: none`) ubicado en la esquina superior derecha y mostrado una sola vez por sesión (`_boot_shown`).
-
-### 2. Pantallas del dashboard (`app/app.py` y `app/pages/1..4`)
-- **Inicio (`app/app.py`):** Tarjetas KPI (`Experimentos`, `Investigaciones PSI`, `Insights con cita`, `Rango de O₂`) compatibles con lista plana o `InsightsDocument`, y tarjetas de acceso rápido a los 4 módulos.
-- **1 · Ranking (`app/pages/1_Ranking.py`):**
-  - Tarjetas KPI con conteo dinámico de resultados (`propagó`, `se extinguió`, `marginal`), tabla HTML con barras de `score_total`, pills semánticos y enlaces DOI.
-  - Fallback explícito (`"0 exactos — mostrando tabla completa"`) cuando un filtro o escenario no tiene coincidencias exactas.
-  - Panel de inspección rápida por experimento con gráfica horizontal apilada del desglose de puntaje (`Relevancia`, `Riesgo`, `Evidencia`, `Cobertura`) y leyenda HTML alineada.
-- **2 · Comparación (`app/pages/2_Comparacion.py`):**
-  - Selector de 2 o 3 experimentos lado a lado con detección automática de diferencias entre filas (`⚡ Difiere`), enlace DOI en la cabecera de cada tarjeta y manejo seguro de `NaN` (`—` / `sin dato`, sin unidades huérfanas).
-  - **2 secciones de gráficas comparativas debajo de la matriz:**
-    1. *Condiciones de prueba (Small Multiples):* 3 gráficas independientes (`Oxígeno (%)`, `Presión (kPa)`, `Flujo (cm/s)`) sin mezclar unidades en un mismo eje y anotando `NaN` como `"sin dato"` (nunca como `0`).
-    2. *Comportamiento de llama:* gráfica de `flame_spread_rate` coloreada por resultado y con verificación de unidad compatible (`spread_rate_unit`).
-- **3 · Insights (`app/pages/3_Insights.py`):**
-  - Modo honesto de insights precalculados (sin simular chat LLM en vivo), compatible tanto con `insights_mock.json` como con `InsightsDocument` (`src/llm/schemas.py`).
-  - Filtro de alcance traducido en interfaz (`Todos`, `Experimento`, `Comparación`), tarjetas semánticas según nivel de confianza (`alta`, `media`, `baja`) con citas `PSI + DOI + pág.` y expander de cita textual integrado visualmente a cada tarjeta.
-- **4 · Cobertura (`app/pages/4_Cobertura.py`):**
-  - Tarjetas resumen (`Celdas con datos`, `Vacíos (0 exp.)`, `Cobertura %`) y pestañas para *Mapa de Cobertura* (scatter `O₂` vs `Presión` con las 3 zonas de referencia `ISS / Tierra`, `Base Lunar / Rover`, `Traje Espacial`, tooltips agrupados para coordenadas repetidas y leyenda inferior apta para móvil) y *Matriz de Vacíos* (heatmap con celdas vacías destacadas).
-
-### 3. Pruebas automatizadas (`tests/test_frontend_qa.py`)
-- Suite de 9 pruebas automatizadas (`unittest` + `streamlit.testing.v1.AppTest`) que validan helpers numéricos, conteo de resultados, ambos esquemas de `insights`, traducción de alcances, ausencia de `NaN` graficados como `0`, desactivación de animaciones en reruns y renderizado sin excepciones de todas las páginas.
+## 4. Vistas actualizadas (`app/pages/1_Ranking.py` a `4_Cobertura.py`)
+- **`1_Ranking.py`:** Tira `.strip` superior con `.cnt` / `.cnt-a` / `.cnt-b`, tabla envuelta en `ui.ficha(f"Ranking · {len(ranked)} ensayos", ...)` con resalte plano `#F6F7F9` y número naranja `#E84C22` en la fila seleccionada, gráfico de barras en `st.container(key="rk_chart_card")` plano y ficha de detalle `ui.ficha(f"{psi_raw} · {exp_raw}", ...)` con `ui.badge`, `ui.dot_specs`, barra apilada 4 componentes y `ui.locator`.
+- **`2_Comparacion.py`:** Matriz comparativa dentro de `ui.ficha(f"Comparación · {len(chosen)} ensayos", ...)` con `ui.locator` (`96×74`) por experimento, filas diferentes en negrita y borde punteado, y gráficas planas en `cmp_cond_card` / `cmp_spread_card` con anotación explícita `"sin dato"` para `NaN`.
+- **`3_Insights.py`:** Sin `st.expander` en el cuerpo principal ni bordes de color laterales; cada hallazgo es un `ui.ficha(f"Insight {k} · {len(hi_df)} ensayos citados", ...)` con título `22px`, `ui.ev_meter`, párrafo `44ch` + superíndices `#E84C22`, `ui.locator(df, hi_df)` y notas expandibles nativas `<details class="cite-det"><summary class="cite-sum">` con estados `"Ver cita"` / `"Ocultar cita"` y enlace a Cobertura en `insufficient_data`.
+- **`4_Cobertura.py`:** Bloque `.gap-hero` abierto sobre el lienzo milimétrico (sin barra de color lateral), mapa de cobertura Plotly dentro de `st.container(key="cov_map_ficha")` con marcas de esquina y pestaña `<span class="tag">Mapa de cobertura</span>`, rayado diagonal `#B91C1C` en zonas con `0` ensayos, y tira `.strip` para el desglose por gravedad conservando ambos expanders inferiores.

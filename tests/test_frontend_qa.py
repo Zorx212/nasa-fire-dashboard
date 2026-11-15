@@ -4,6 +4,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
@@ -77,6 +78,19 @@ class TestFrontendHelpers(unittest.TestCase):
         norm_insuf = ui.norm_insight(items_sample[1])
         self.assertEqual(norm_insuf["st"], "w")
 
+    def test_brand_logo_assets_and_safe_inline_svg(self):
+        """Los assets del isotipo existen y el SVG inline conserva órbita sin colapsar contenedores."""
+        assets_dir = APP_DIR / "assets"
+        for filename in ("logo_animated.svg", "logo_static.svg", "logo.png"):
+            self.assertTrue((assets_dir / filename).exists(), f"Falta {filename} en app/assets/")
+        self.assertIn('width="44" height="44"', ui.LOGO_SVG)
+        self.assertIn('width="56" height="56"', ui.LOGO_HERO_SVG)
+        self.assertIn("<animateMotion", ui.LOGO_SVG)
+        self.assertNotIn("<style>", ui.LOGO_SVG)
+        self.assertNotIn("<metadata>", ui.LOGO_SVG)
+        self.assertIn("@keyframes ff-k", ui.CSS)
+        self.assertIn(":not(:has(svg))", ui.CSS)
+
 
 class TestStreamlitRoutes(unittest.TestCase):
     def test_all_five_routes_render_without_exception(self):
@@ -115,13 +129,16 @@ class TestStreamlitRoutes(unittest.TestCase):
         self.assertIsNone(at.session_state["scen"])
 
     def test_insights_unanswered_question_and_translated_scopes(self):
-        """Insights muestra alcances traducidos en español e informa que no consulta un LLM en vivo cuando no hay respuesta."""
+        """Insights muestra alcances traducidos en español, formato fichas con <details> y avisa cuando no hay respuesta."""
         at = AppTest.from_file(str(APP_DIR / "pages" / "3_Insights.py"), default_timeout=15)
         at.run()
         self.assertEqual(len(at.exception), 0)
-        # El radio 'Mostrar' debe presentar opciones traducidas al español
         self.assertEqual(at.radio[1].options, ["Todos", "Comparación", "Experimento"])
-        self.assertTrue(any("Experimento · PSI-MOCK-A" in m.value for m in at.markdown))
+        all_md = "\n".join(m.value for m in at.markdown)
+        self.assertIn("Insight 1 · 3 ensayos citados", all_md)
+        self.assertIn('<details class="cite-det">', all_md)
+        self.assertIn("Ver cobertura", "\n".join([all_md] + [pl.label for pl in at.get("page_link")]))
+        self.assertEqual(len(at.main.expander), 0)  # Addendum: eliminar st.expander en Insights
 
         at.radio[0].set_value("¿Qué sabemos de gravedad parcial?").run()
         self.assertEqual(len(at.exception), 0)
@@ -163,6 +180,87 @@ class TestStreamlitRoutes(unittest.TestCase):
             at.switch_page(subpage).run()
             self.assertEqual(len(at.exception), 0, f"Excepción al cambiar a {subpage}: {at.exception}")
             self.assertEqual(at.session_state["scen"], "Base Lunar / Rover")
+
+    def test_insights_schemas_format_two_citations_and_insufficient_data(self):
+        """Insights soporta formato schemas.py con 2 citas (superíndices + notas al pie) e insufficient_data."""
+        schemas_payload = {
+            "generated_at": "2026-11-15T00:00:00Z",
+            "model": "claude-sonnet-5-5",
+            "prompt_version": "1.0",
+            "insights": [
+                {
+                    "id": "ins-001",
+                    "scope": "comparison",
+                    "psi_ids": ["PSI-22", "PSI-23"],
+                    "title": "Comparación de encendido en oxígeno elevado",
+                    "description": "El umbral de propagación descendió al aumentar la fracción de oxígeno.",
+                    "evidence_status": "supported",
+                    "confidence": "high",
+                    "citations": [
+                        {
+                            "psi_id": "PSI-22",
+                            "doi": "10.0000/psi-22",
+                            "page": "14",
+                            "quote": "A 30% O2 la propagación fue sostenida en muestras delgadas.",
+                        },
+                        {
+                            "psi_id": "PSI-23",
+                            "doi": "",
+                            "page": "8",
+                            "quote": "A menor espesor se observó mayor velocidad de llama.",
+                        },
+                    ],
+                },
+                {
+                    "id": "ins-002",
+                    "scope": "experiment",
+                    "psi_ids": ["PSI-99"],
+                    "title": "Gravedad lunar con polímeros gruesos",
+                    "description": "No se hallaron ensayos bajo 1/6 g real en los documentos analizados.",
+                    "evidence_status": "insufficient_data",
+                    "confidence": "low",
+                    "citations": [],
+                },
+            ],
+        }
+        with patch("ui.load_insights_any", return_value=(schemas_payload, False)):
+            at = AppTest.from_file(str(APP_DIR / "pages" / "3_Insights.py"), default_timeout=15)
+            at.run()
+            self.assertEqual(len(at.exception), 0)
+            all_md = "\n".join(m.value for m in at.markdown)
+            self.assertIn("<sup>1</sup><sup>2</sup>", all_md)
+            self.assertIn("https://doi.org/10.0000/psi-22", all_md)
+            self.assertIn("DOI pendiente", all_md)
+            self.assertIn("A 30% O2 la propagación fue sostenida", all_md)
+            self.assertIn("No hay ensayos que respondan esto. Revisa la cobertura.", all_md)
+            self.assertNotIn("Este formato no incluye cita textual", all_md)
+
+    def test_cobertura_gap_hero_and_fillpattern_and_scenario_spin(self):
+        """Cobertura renderiza bloque de brecha 56 px + fillpattern, y Ranking alterna giro/conteo en los 3 escenarios."""
+        at_cov = AppTest.from_file(str(APP_DIR / "pages" / "4_Cobertura.py"), default_timeout=15)
+        at_cov.run()
+        self.assertEqual(len(at_cov.exception), 0)
+        cov_md = "\n".join(m.value for m in at_cov.markdown)
+        self.assertIn("gap-num", cov_md)
+        self.assertIn("ensayos en gravedad parcial real (1/6 g · 3/8 g)", cov_md)
+        cov_spec = json.loads(at_cov.get("plotly_chart")[0].proto.spec)
+        self.assertTrue(any(t.get("fillpattern", {}).get("shape") == "/" for t in cov_spec["data"]))
+
+        at_rk = AppTest.from_file(str(APP_DIR / "pages" / "1_Ranking.py"), default_timeout=15)
+        at_rk.run()
+        init_md = "\n".join(m.value for m in at_rk.markdown)
+        self.assertIn('<div class="strip">', init_md)
+        self.assertIn('role="img"', init_md)
+        self.assertIn('class="spec-dots"', init_md)
+        for idx, scen_name in enumerate(("Base Lunar / Rover", "Traje Espacial", "ISS / Tierra"), 1):
+            at_rk.sidebar.button(key="b_" + scen_name).click().run()
+            self.assertEqual(len(at_rk.exception), 0)
+            expected_spin = "spin-a" if idx % 2 == 1 else "spin-b"
+            expected_cnt = "cnt-a" if idx % 2 == 1 else "cnt-b"
+            sb_md = "\n".join(m.value for m in at_rk.sidebar.markdown)
+            main_md = "\n".join(m.value for m in at_rk.markdown)
+            self.assertIn(expected_spin, sb_md)
+            self.assertIn(expected_cnt, main_md)
 
 
 if __name__ == "__main__":

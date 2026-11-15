@@ -15,7 +15,9 @@ st.caption("Cada afirmación muestra su fuente. Respuestas precalculadas: no se 
 
 insights_list, meta = ui.extract_insights(raw_insights)
 if meta.get("model"):
-    st.caption(f"Modelo de extracción offline: `{meta['model']}` · prompt v{meta.get('prompt_version', '1.0')}")
+    st.caption(f"Modelo de extracción fuera de línea: `{meta['model']}` · versión de prompt {meta.get('prompt_version', '1.0')}")
+
+q_search = st.text_input("Buscar en hallazgos", placeholder="Filtrar por material, condición o estudio PSI...")
 
 questions = [
     "Todas las respuestas precalculadas",
@@ -25,7 +27,15 @@ questions = [
 ]
 question = st.radio("Preguntas sugeridas", questions, horizontal=True)
 
-items = [ui.norm_insight(i) for i in insights_list]
+items = [ui.norm(i) for i in insights_list]
+if q_search.strip():
+    q_low = q_search.strip().lower()
+    items = [
+        item
+        for item in items
+        if q_low in (item["title"] + " " + item["text"] + " " + item.get("explanation", "") + " " + " ".join(item.get("psi_ids", []))).lower()
+    ]
+
 question_terms = {
     questions[1]: ("oxígeno", "o2", "o₂", "oxygen", "30%"),
     questions[2]: ("sólido", "solido", "solid", "pmma", "celulosa", "material"),
@@ -48,52 +58,66 @@ scope = (
     else "todos"
 )
 
-for idx, it in enumerate(items):
-    if scope != "todos" and it["scope"] != scope:
-        continue
-    foot_pills = []
-    for c in it["cites"][:4]:
-        psi = E(ui.clean_str(c.get("psi_id"), "?"))
-        doi_raw = ui.clean_str(c.get("doi"), "")
-        page_str = E(ui.clean_str(c.get("page"), "?"))
-        if doi_raw and doi_raw.lower() != "sin doi":
-            foot_pills.append(
-                f'<a class="pill" href="https://doi.org/{E(doi_raw)}" target="_blank" rel="noopener noreferrer">'
-                f"{psi} · DOI: {E(doi_raw)} · Pág. {page_str}</a>"
-            )
-        else:
-            foot_pills.append(f'<span class="pill">{psi} · DOI: sin DOI · Pág. {page_str}</span>')
-    foot = "".join(foot_pills) or '<span class="pill muted">Sin fuente directa en PSI</span>'
+visible_items = [it for it in items if scope == "todos" or it["scope"] == scope]
+
+for k, it in enumerate(visible_items, 1):
+    cite_pids = {ui.clean_str(c.get("psi_id"), "") for c in it["cites"] if ui.clean_str(c.get("psi_id"), "")}
+    hi_df = df[df["psi_id"].astype(str).isin(cite_pids)] if (cite_pids and "psi_id" in df.columns) else df.iloc[0:0]
+
     expl_html = (
-        f'<div class="meta-line" style="margin-top:-4px;margin-bottom:10px">{E(it["explanation"])}</div>'
+        f'<div class="ins-expl">{E(it["explanation"])}</div>'
         if it.get("explanation")
         else ""
     )
-    scope_meta = ""
-    if it.get("scope") or it.get("psi_ids"):
-        scope_es = ui.scope_label(it.get("scope", ""))
-        parts = [p for p in [scope_es, ", ".join(it.get("psi_ids", []))] if p]
-        scope_meta = f'<div class="meta-line">{" · ".join(E(p) for p in parts)}</div>'
 
-    has_cites_cls = " has-cites" if it["cites"] else ""
-    st.markdown(
-        f'<div class="card find {it["st"]}{has_cites_cls}">'
-        f'<div class="h"><div>{scope_meta}<h3>{E(it["title"])}</h3></div>{ui.badge(it["lab"], it["kb"])}</div>'
-        f'<p>{it["text"]}</p>{expl_html}{foot}</div>',
-        unsafe_allow_html=True,
+    fn_rows = []
+    for n_cite, c in enumerate(it["cites"], 1):
+        psi = E(ui.clean_str(c.get("psi_id"), "?"))
+        doi_raw = ui.clean_str(c.get("doi"), "")
+        page_str = E(ui.clean_str(c.get("page"), "?"))
+        has_doi = bool(doi_raw and doi_raw.lower() not in ("sin doi", "doi pendiente"))
+        doi_meta = f"DOI {E(doi_raw)}" if has_doi else "DOI pendiente"
+        doi_link = (
+            f' <a class="doi-open" href="https://doi.org/{E(doi_raw)}" target="_blank" rel="noopener noreferrer">Abrir DOI</a>'
+            if has_doi
+            else ""
+        )
+        has_q = bool(c.get("has_quote"))
+        if has_q:
+            q_body = f'{E(ui.clean_str(c.get("quote"), ""))}{doi_link}'
+        else:
+            q_txt = ui.clean_str(c.get("claim_text") or c.get("text"), "Sin texto disponible.")
+            q_body = f'{E(q_txt)} <span class="cite-noq">— Este formato no incluye cita textual</span>{doi_link}'
+        fn_rows.append(
+            f'<details class="cite-det"><summary class="cite-sum">'
+            f'<span class="cite-num">{n_cite}</span>'
+            f'<span class="cite-ref">{psi} · {doi_meta} · p. {page_str}</span>'
+            f'<span class="cite-toggle"></span>'
+            f'</summary><div class="cite-q">{q_body}</div></details>'
+        )
+    fn_html = f'<div class="fn-list">{"".join(fn_rows)}</div>' if fn_rows else ""
+
+    loc_svg = ui.locator(df, hi_df)
+    body_html = (
+        f'<div class="ins-hdr">'
+        f'<h3 class="ins-title">{E(it["title"])}</h3>'
+        f'<div class="ev-status">{ui.ev_meter(it["st"])}<span class="ev-lab">{E(it["lab"])}</span></div>'
+        f'</div>'
+        f'<div class="f-split"><div class="f-main"><p class="ins-p">{it["text"]}</p>{expl_html}</div>'
+        f'<div class="f-loc">{loc_svg}</div></div>'
+        f'{fn_html}'
     )
-    if it["cites"]:
-        with st.container(key=f"ins_cite_{idx}"):
+    st.markdown(ui.ficha(f"Insight {k} · {len(hi_df)} ensayos citados", body_html), unsafe_allow_html=True)
+
+    if it["st"] == "w":
+        st.markdown(
+            '<div style="font-size:12.5px;color:#64748B;margin:-4px 0 4px 0">No hay ensayos que respondan esto. Revisa la cobertura.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            st.page_link("pages/4_Cobertura.py", label="Ver cobertura")
+        except Exception:
             st.markdown(
-                f"<style>.st-key-ins_cite_{idx}{{margin-top:-15px;margin-bottom:14px}}"
-                f".st-key-ins_cite_{idx} [data-testid='stExpander'] details{{"
-                f"border-top-left-radius:0!important;border-top-right-radius:0!important;"
-                f"border-top:1px dashed #E2E8F0!important;background:#FAFBFD!important;"
-                f"border-left:4px solid {'#15803D' if it['st']=='' else '#1D4ED8' if it['st']=='b' else '#D97706'}!important}}"
-                f"</style>",
+                '<a href="/Cobertura" style="font-size:13px;font-weight:600;color:#E84C22;text-decoration:none">Ver cobertura</a>',
                 unsafe_allow_html=True,
             )
-            with st.expander("Ver cita textual del reporte"):
-                for c in it["cites"]:
-                    q_txt = ui.clean_str(c.get("quote") or c.get("text"), "(sin cita textual)")
-                    st.markdown(f"> {E(q_txt)}  \n{ui.cite_md(c)}")
