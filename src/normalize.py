@@ -40,11 +40,13 @@ PRESSURE_TO_KPA = {"atm": 101.325, "kpa": 1.0, "pa": 0.001, "bar": 100.0,
 #  numeric                destino: (columna, factor)  -> valor * factor
 #  numeric_extract        destino: (columna, factor)  -> extrae número inicial antes de multiplicar
 #  blank_negative         lista de destinos numéricos cuyos negativos pasan a vacío
+#  flag_negative          destino: mensaje que se agrega a notes en las filas con valor negativo
 #  pressure_text          destino: columna con texto tipo "1 atm" -> kPa
 #  mapped                 destino: (columna, {valor: categoría})
 #  mapped_contains        destino: (columna, {subcadena: categoría})
 #  constants              destino: valor fijo
 #  notes_from             columnas que se copian a notes
+#  notes_const            textos fijos que se agregan a notes de todas las filas de la tabla
 # gravity_level = 0 (en g): todos los experimentos son en microgravedad.
 SPECS = {
     "PSI_159/PSI-159_tabla_Inverse_Flames.csv": {
@@ -93,9 +95,10 @@ SPECS = {
         "id_columns": ["GMT date", "GMT ignition"],
         "text": {"material_or_fuel": "Fuel"},
         "numeric": {"flow_velocity": ("Air Rate (cm/s)", 1)},         # cm/s
-        # Si el reporte dice que los negativos son error, descomenta la línea siguiente
-        # y agrega "Air Rate (cm/s)" a notes_from para conservar el valor original:
-        # "blank_negative": ["flow_velocity"],
+        # Negativos: se conservan y se marcan en notes hasta confirmar en el reporte.
+        # Si el reporte dice que son error, usar "blank_negative": ["flow_velocity"]
+        # y agregar "Air Rate (cm/s)" a notes_from para conservar el valor original.
+        "flag_negative": {"flow_velocity": "flow_velocity negativo sin confirmar"},
         "constants": {"material_type": "gas", "gravity_level": 0},
         "notes_from": ["Nozzle (mm)", "Fuel Rate (sccm)", "Fuel Rate (mg/s)",
                        "HC Fuel Rate (mg/s)", "GMT Flame Off"],
@@ -203,6 +206,14 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
             print(f"[aviso] {key}: {int(neg.sum())} negativos de {target} quedan vacíos")
             out.loc[neg, target] = float("nan")
 
+    extra_notes = {}
+    for target, msg in spec.get("flag_negative", {}).items():
+        neg = out[target] < 0
+        for idx in out.index[neg]:
+            extra_notes.setdefault(idx, []).append(msg)
+        if neg.any():
+            print(f"[aviso] {key}: {int(neg.sum())} filas con {target} negativo marcadas en notes")
+
     for target, col in spec.get("pressure_text", {}).items():
         out[target] = df[col].map(parse_pressure_kpa)
         warn_lost(key, col, df[col], out[target])
@@ -243,6 +254,8 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
     def build_note(row):
         parts = [f"{c.strip()}={str(row[c]).strip()}" for c in cols
                  if pd.notna(row[c]) and str(row[c]).strip() not in ("", "-")]
+        parts += extra_notes.get(row.name, [])
+        parts += spec.get("notes_const", [])
         return "; ".join(parts) or pd.NA
 
     out["notes"] = df.apply(build_note, axis=1)
@@ -289,13 +302,14 @@ def build_master() -> pd.DataFrame:
         raise SystemExit("[ERROR] ningún CSV coincide con SPECS. Revisa las llaves.")
     master = pd.concat(parts, ignore_index=True)
     master = make_ids_unique(master)
-        # Si hay velocidad de propagación medida, la llama propagó
+    # Si hay velocidad de propagación medida, la llama propagó
     if "flame_spread_rate" in master:
         prop = master["flame_spread_rate"].notna() & master["flame_outcome"].isna()
         master.loc[prop, "flame_outcome"] = "propagó"
     master = master.merge(load_catalog(), on="psi_id", how="left")
     master = master.reindex(columns=MASTER_COLUMNS)  # lo que falta queda vacío, nunca 0
-    master["spread_rate_unit"] = master["spread_rate_unit"].fillna("mm/s")  # unidad estándar, como en el mock
+    # La unidad solo acompaña a un valor: sin velocidad de propagación, sin unidad
+    master.loc[master["flame_spread_rate"].isna(), "spread_rate_unit"] = pd.NA
     return master
 
 
