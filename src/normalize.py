@@ -12,22 +12,40 @@ MASTER_COLUMNS = [
     "source_file", "source_page", "notes",
 ]
 
-# CONFIRMAR EN EL REPORTE DE PSI-159: SE y FT
-OUTCOME_MAP = {"se": "self_extinguished", "ft": "flow_terminated", "-": None}
+# SE = self-extinguished ("se extinguió").
+# FT (flow terminated) se deja vacío: describe cómo terminó la prueba, no el
+# resultado de la llama. Ver notes/discoveries.md. El código original queda en notes.
+OUTCOME_MAP = {"se": "se extinguió", "ft": None, "-": None}
+
+# En PSI-99 (microgravedad), ?-g Burn Length == "~ 0" indica autoextinción inmediata;
+# el resto de comportamientos (consumo total o llama anclada) quedan en notes.
+PSI_99_OUTCOME_MAP = {
+    "~ 0": "se extinguió",
+    "29 cm": None,
+    "5 cm & 0 (note 2)": None,
+    "~ 10 cm (note 3)": None,
+    "~ 10 cm (note 4)": None,
+}
 
 PRESSURE_TO_KPA = {"atm": 101.325, "kpa": 1.0, "pa": 0.001, "bar": 100.0,
                    "mbar": 0.1, "torr": 0.133322, "psi": 6.894757}
 
 # Llave = ruta dentro de data/raw. Opciones por tabla:
-#  id_columns        columnas que forman el ID del ensayo
-#  text              destino: columna origen (se limpia a minúsculas)
-#  text_strip_regex  destino: regex que se borra del texto
-#  numeric           destino: (columna, factor)  -> valor * factor
-#  pressure_text     destino: columna con texto tipo "1 atm" -> kPa
-#  mapped            destino: (columna, {valor: categoría})
-#  mapped_contains   destino: (columna, {subcadena: categoría})
-#  constants         destino: valor fijo
-#  notes_from        columnas que se copian a notes
+#  id_columns             columnas que forman el ID del ensayo
+#  id_regex               regex opcional para filtrar filas válidas por id_columns[0]
+#  ffill_columns          columnas con celdas combinadas a rellenar hacia abajo
+#  drop_exact_duplicates  elimina filas idénticas
+#  text                   destino: columna origen (se limpia a minúsculas)
+#  text_strip_regex       destino: regex que se borra del texto
+#  numeric                destino: (columna, factor)  -> valor * factor
+#  numeric_extract        destino: (columna, factor)  -> extrae número inicial antes de multiplicar
+#  blank_negative         lista de destinos numéricos cuyos negativos pasan a vacío
+#  pressure_text          destino: columna con texto tipo "1 atm" -> kPa
+#  mapped                 destino: (columna, {valor: categoría})
+#  mapped_contains        destino: (columna, {subcadena: categoría})
+#  constants              destino: valor fijo
+#  notes_from             columnas que se copian a notes
+# gravity_level = 0 (en g): todos los experimentos son en microgravedad.
 SPECS = {
     "PSI_159/PSI-159_tabla_Inverse_Flames.csv": {
         "id_columns": ["Test"],
@@ -35,9 +53,9 @@ SPECS = {
         "numeric": {"o2_percent": ("XO2", 100),                 # fracción -> %
                     "pressure_kpa": ("approx p (bar)", 100)},   # bar -> kPa
         "mapped": {"flame_outcome": ("Self-ext or flow term", OUTCOME_MAP)},
-        "constants": {"material_type": "gas", "gravity_level": "microgravity"},
+        "constants": {"material_type": "gas", "gravity_level": 0},
         "notes_from": ["Flame Type", "Hot ignition", "TFP", "Color",
-                       "HC burnrate (mg/s)", "Comments"],
+                       "HC burnrate (mg/s)", "Self-ext or flow term", "Comments"],
     },
     "PSI_159/PSI-159_tabla_Normal_Flames.csv": {
         "id_columns": ["Test"],
@@ -45,15 +63,15 @@ SPECS = {
         "numeric": {"o2_percent": ("XO2 before test", 100),
                     "pressure_kpa": ("approx p (bar)", 100)},
         "mapped": {"flame_outcome": ("Self-ext or flow term", OUTCOME_MAP)},
-        "constants": {"material_type": "gas", "gravity_level": "microgravity"},
+        "constants": {"material_type": "gas", "gravity_level": 0},
         "notes_from": ["Flame Type", "Cool flame?", "XO2 after test",
-                       "Hot ignition", "Comments"],
+                       "Hot ignition", "Self-ext or flow term", "Comments"],
     },
     "PSI_101/PSI-101_tabla.csv": {
         "id_columns": ["SAME Test #", "Sample Type"],
         "text": {"material_or_fuel": "Sample Type"},
         "numeric": {"flow_velocity": ("Inlet velocity (cm/s)", 1)},   # cm/s
-        "constants": {"material_type": "solid", "gravity_level": "microgravity"},
+        "constants": {"material_type": "sólido", "gravity_level": 0},
         "notes_from": ["Description", "Date", "Rt/R0", "Duration (sec)",
                        "Primary aging time (sec)", "Primary mixing time (sec)",
                        "Net aging time (sec)"],
@@ -64,9 +82,10 @@ SPECS = {
         "text_strip_regex": {"material_or_fuel": r":.*$"},
         "numeric": {"flow_velocity": ("Air Flow (cm/s)", 1)},         # cm/s
         "mapped_contains": {"material_type": ("Sample Material", {
-            "teflon": "solid", "kapton": "solid",
-            "silicone": "solid", "lampwick": "solid"})},
-        "constants": {"gravity_level": "microgravity"},
+            "teflon": "sólido", "kapton": "sólido",
+            "silicone": "sólido", "lampwick": "sólido",
+            "dibutyl": "líquido"})},
+        "constants": {"gravity_level": 0},
         "notes_from": ["Sample Material", "Weight loss rate (mg/min)",
                        "Aging Duration (minutes)"],
     },
@@ -74,7 +93,10 @@ SPECS = {
         "id_columns": ["GMT date", "GMT ignition"],
         "text": {"material_or_fuel": "Fuel"},
         "numeric": {"flow_velocity": ("Air Rate (cm/s)", 1)},         # cm/s
-        "constants": {"material_type": "gas", "gravity_level": "microgravity"},
+        # Si el reporte dice que los negativos son error, descomenta la línea siguiente
+        # y agrega "Air Rate (cm/s)" a notes_from para conservar el valor original:
+        # "blank_negative": ["flow_velocity"],
+        "constants": {"material_type": "gas", "gravity_level": 0},
         "notes_from": ["Nozzle (mm)", "Fuel Rate (sccm)", "Fuel Rate (mg/s)",
                        "HC Fuel Rate (mg/s)", "GMT Flame Off"],
     },
@@ -84,18 +106,48 @@ SPECS = {
         "text": {"material_or_fuel": "Fuel"},
         "numeric": {"o2_percent": ("Oxygen", 100)},                   # fracción -> %
         "pressure_text": {"pressure_kpa": "Pressure"},                # "1 atm" -> kPa
-        "constants": {"material_type": "liquid", "gravity_level": "microgravity"},
+        "constants": {"material_type": "líquido", "gravity_level": 0},
         "notes_from": ["Test Date", "CIR", "Fiber", "Nitrogen", "Helium"],  # N2 y He, fracción
     },
-    # PSI_22: pendiente, falta revisar su estructura.
-    # Si un PSI mide velocidad de propagación, agrega:
-    #   "spread_rate": {"column": "...", "factor": 1, "unit": "mm/s"},
+    "PSI_99/PSI-99_tabla.csv": {
+        "id_columns": ["Sample Number"],
+        "id_regex": r"^\d+-\d+$",
+        "ffill_columns": ["Material"],
+        "text": {"material_or_fuel": "Material"},
+        "numeric_extract": {
+            "o2_percent": ("Percent O2 (Note 1)", 1),                 # "~ 22.1" -> 22.1
+            "flow_velocity": ("Air Flow (cm/s)", 1),                  # "20 cm/s" -> 20.0
+        },
+        "mapped": {
+            "flame_outcome": ("?-g Burn Length", PSI_99_OUTCOME_MAP),
+        },
+        "constants": {"material_type": "sólido", "gravity_level": 0},
+        "spread_rate": {
+            "column": "?-g Spread Length",
+            "factor": 1,
+            "unit": "mm/s",
+            "extract": True,                                          # "2.1 mm/s" -> 2.1; "Note 4" -> NaN
+        },
+        "notes_from": [
+            "Samle Thickness ", "Sample Length ", "Sample Width (cm)",
+            "Percent O2 (Note 1)", "Ignition Power (W)", "Ignition Time (s)",
+            "Burn Time (s)", "Flow Direction", "?-g Burn Length",
+            "?-g Spread Length", "1-g Burn Length", "1-g Spread Rate",
+            "Camera 1", "Camera 2",
+        ],
+    },
+    # PSI_22: fuera por ahora (su tabla es por día de pruebas, no por ensayo).
 }
 
 
 def clean_text(s: pd.Series) -> pd.Series:
     s = s.astype("string").str.strip().str.lower()
     return s.str.replace(r"\s+", " ", regex=True).str.replace(r"\s+%", "%", regex=True)
+
+
+def extract_leading_number(s: pd.Series) -> pd.Series:
+    extracted = s.astype("string").str.extract(r"^\s*~?\s*([+-]?\d+(?:\.\d+)?)")[0]
+    return pd.to_numeric(extracted, errors="coerce")
 
 
 def parse_pressure_kpa(value):
@@ -120,6 +172,11 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
         if len(df) < before:
             print(f"[aviso] {key}: se eliminaron {before - len(df)} filas idénticas")
     df = df[df[id_cols[0]].notna()].copy()
+    if "id_regex" in spec:
+        df = df[df[id_cols[0]].astype("string").str.strip().str.match(spec["id_regex"])].copy()
+    for col in spec.get("ffill_columns", []):
+        if col in df.columns:
+            df[col] = df[col].ffill()
     out = pd.DataFrame(index=df.index)
 
     id_parts = df[id_cols].astype("string").apply(
@@ -135,6 +192,16 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
     for target, (col, factor) in spec.get("numeric", {}).items():
         out[target] = pd.to_numeric(df[col], errors="coerce") * factor
         warn_lost(key, col, df[col], out[target])
+
+    for target, (col, factor) in spec.get("numeric_extract", {}).items():
+        out[target] = extract_leading_number(df[col]) * factor
+        warn_lost(key, col, df[col], out[target])
+
+    for target in spec.get("blank_negative", []):
+        neg = out[target] < 0
+        if neg.any():
+            print(f"[aviso] {key}: {int(neg.sum())} negativos de {target} quedan vacíos")
+            out.loc[neg, target] = float("nan")
 
     for target, col in spec.get("pressure_text", {}).items():
         out[target] = df[col].map(parse_pressure_kpa)
@@ -160,13 +227,18 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
 
     if "spread_rate" in spec:
         s = spec["spread_rate"]
-        out["flame_spread_rate"] = pd.to_numeric(df[s["column"]], errors="coerce") * s.get("factor", 1)
+        series = (
+            extract_leading_number(df[s["column"]])
+            if s.get("extract")
+            else pd.to_numeric(df[s["column"]], errors="coerce")
+        )
+        out["flame_spread_rate"] = series * s.get("factor", 1)
         out["spread_rate_unit"] = s["unit"]
 
     cols = [c for c in spec.get("notes_from", []) if c in df.columns]
 
     def build_note(row):
-        parts = [f"{c}={str(row[c]).strip()}" for c in cols
+        parts = [f"{c.strip()}={str(row[c]).strip()}" for c in cols
                  if pd.notna(row[c]) and str(row[c]).strip() not in ("", "-")]
         return "; ".join(parts) or pd.NA
 
@@ -215,7 +287,10 @@ def build_master() -> pd.DataFrame:
     master = pd.concat(parts, ignore_index=True)
     master = make_ids_unique(master)
     master = master.merge(load_catalog(), on="psi_id", how="left")
-    return master.reindex(columns=MASTER_COLUMNS)  # lo que falta queda vacío, nunca 0
+    master = master.reindex(columns=MASTER_COLUMNS)  # lo que falta queda vacío, nunca 0
+    master["spread_rate_unit"] = master["spread_rate_unit"].fillna("mm/s")  # unidad estándar, como en el mock
+    return master
+
 
 CONTRACT_COLUMNS = [
     "experiment_id", "psi_id", "doi", "license", "title", "material_or_fuel",
@@ -235,6 +310,7 @@ def check_contract(master: pd.DataFrame, mock_path="data/mock/master_table_mock.
         print(f"[ERROR] las columnas NO coinciden con {origin}:")
         print("  esperadas:", expected)
         print("  mías     :", list(master.columns))
+
 
 if __name__ == "__main__":
     m = build_master()
