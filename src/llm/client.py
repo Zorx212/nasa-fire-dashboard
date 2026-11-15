@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,9 @@ from src.llm.cache import (
     save_cached_response,
 )
 from src.paths import CACHE_DIR
+
+# Only answers that ended normally are worth caching.
+_USABLE_STOP_REASONS = ("end_turn", "stop_sequence")
 
 
 def build_request(
@@ -70,7 +74,8 @@ def complete(
     max_tokens: int = LLM_MAX_TOKENS,
     temperature: float = LLM_TEMPERATURE,
     cache_dir: Path = CACHE_DIR,
-    sdk_client=None,
+    sdk_client: anthropic.Anthropic | None = None,
+    validate: Callable[[str], None] | None = None,
 ) -> str:
     """Return the model's text for this request, using the cache first.
 
@@ -78,7 +83,10 @@ def complete(
     (creating the SDK client, which reads the key, unless sdk_client is
     given), stores the real response in the cache and returns its text.
     Raises RuntimeError if the key is missing, the call fails, the answer
-    was cut at max_tokens or it has no text; those answers are never cached.
+    was cut at max_tokens, stopped for another unusable reason (such as a
+    refusal) or has no text. If validate is given it is called with the
+    text and may raise (for example ValueError); an answer that fails is
+    never cached, so a bad answer cannot become permanent.
     """
     request = build_request(
         system, user_message, model, max_tokens, temperature
@@ -86,18 +94,32 @@ def complete(
     key = build_cache_key(request)
     cached = get_cached_response(key, cache_dir)
 
-    if cached is not None and isinstance(cached.get("text"), str):
-        return cached["text"]
+    if cached is not None:
+        cached_text = cached.get("text")
+
+        if isinstance(cached_text, str) and cached_text.strip():
+            return cached_text
 
     response = _call_api(request, sdk_client)
+    stop_reason = getattr(response, "stop_reason", None)
 
-    if getattr(response, "stop_reason", None) == "max_tokens":
+    if stop_reason == "max_tokens":
         raise RuntimeError(
             f"The answer was cut at max_tokens={max_tokens}. "
             "Raise LLM_MAX_TOKENS or ask for fewer insights."
         )
 
+    if stop_reason not in _USABLE_STOP_REASONS:
+        raise RuntimeError(
+            f"The API stopped with stop_reason={stop_reason!r}, "
+            "so the answer is not usable and was not cached."
+        )
+
     text = _extract_text(response)
+
+    if validate is not None:
+        validate(text)
+
     usage = getattr(response, "usage", None)
 
     save_cached_response(

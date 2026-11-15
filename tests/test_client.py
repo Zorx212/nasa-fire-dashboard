@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -153,6 +154,82 @@ def test_cache_entry_without_text_is_treated_as_a_miss(tmp_path: Path) -> None:
     run(sdk, tmp_path)
     key = build_cache_key(sdk.calls[0])
     (tmp_path / f"{key}.json").write_text('{"created_at": "x"}', encoding="utf-8")
+
+    assert run(sdk, tmp_path) == "fresh"
+    assert len(sdk.calls) == 2
+
+
+@pytest.mark.parametrize("stop_reason", ["refusal", "pause_turn", None])
+def test_answer_that_did_not_end_normally_is_not_cached(
+    tmp_path: Path, stop_reason
+) -> None:
+    sdk = FakeSdk(text="partial", stop_reason=stop_reason)
+
+    with pytest.raises(RuntimeError, match="not usable"):
+        run(sdk, tmp_path)
+
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_stop_sequence_counts_as_a_normal_end(tmp_path: Path) -> None:
+    assert run(FakeSdk(text="ok", stop_reason="stop_sequence"), tmp_path) == "ok"
+
+
+def test_response_with_only_non_text_blocks_raises_and_is_not_cached(
+    tmp_path: Path,
+) -> None:
+    sdk = FakeSdk()
+    sdk.messages = SimpleNamespace(
+        create=lambda **request: SimpleNamespace(
+            content=[SimpleNamespace(type="tool_use")],
+            stop_reason="end_turn",
+            usage=None,
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="no text"):
+        run(sdk, tmp_path)
+
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_answer_rejected_by_validate_is_not_cached(tmp_path: Path) -> None:
+    sdk = FakeSdk(text="not json")
+
+    def validate(text: str) -> None:
+        raise ValueError("bad answer")
+
+    with pytest.raises(ValueError, match="bad answer"):
+        run(sdk, tmp_path, validate=validate)
+
+    assert list(tmp_path.iterdir()) == []
+    assert run(sdk, tmp_path) == "not json"
+    assert len(sdk.calls) == 2
+
+
+def test_validate_runs_on_a_miss_and_a_good_answer_is_cached(
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    sdk = FakeSdk(text="good")
+
+    assert run(sdk, tmp_path, validate=seen.append) == "good"
+    assert run(sdk, tmp_path, validate=seen.append) == "good"
+    assert seen == ["good"]
+    assert len(sdk.calls) == 1
+
+
+@pytest.mark.parametrize("stored", ["", "   \n", None, 5])
+def test_cached_entry_with_blank_or_invalid_text_is_a_miss(
+    tmp_path: Path, stored
+) -> None:
+    sdk = FakeSdk(text="fresh")
+    run(sdk, tmp_path)
+    key = build_cache_key(sdk.calls[0])
+    entry = {"text": stored}
+    (tmp_path / f"{key}.json").write_text(
+        json.dumps(entry), encoding="utf-8"
+    )
 
     assert run(sdk, tmp_path) == "fresh"
     assert len(sdk.calls) == 2
