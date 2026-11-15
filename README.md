@@ -1,7 +1,10 @@
-<<<<<<< HEAD
-# nasa-fire-dashboard
+# NASA Fire Dashboard
 
 Dashboard de seguridad contra incendios en microgravedad (NASA Space Apps 2026).
+
+## Requisitos
+
+- Python 3.10 o superior.
 
 ## Ejecutar
 
@@ -17,17 +20,11 @@ usa los datos de ejemplo de `data/mock/` y muestra un aviso.
 
 ## Contratos entre módulos
 
-- `data/processed/master_table.csv`: columnas de la sección 8 del plan (Python 1).
+- `data/processed/master_table.csv`: mismas columnas que `data/mock/master_table_mock.csv` (Python 1).
 - `src/ranking.py`: `rank(df, weights) -> df` con `score_relevancia`, `score_riesgo`,
   `score_evidencia`, `score_cobertura`, `score_total` (Python 2).
 - `src/coverage.py`: `coverage_grid(df) -> DataFrame` (filas: bins de presión, columnas: bins de O2, valores: conteo).
-- `data/processed/insights.json`: ver `data/mock/insights_mock.json` (Python 3).
+- `data/processed/insights.json`: formato definido en `src/llm/schemas.py` (Python 3).
+  `data/mock/insights_mock.json` es solo un ejemplo provisional de la app.
 
 La app nunca llama al LLM: solo lee JSON precalculado.
-=======
-# NASA Fire Dashboard
-
-## Requisitos
-
-- Python 3.10 o superior.
->>>>>>> origin/main
