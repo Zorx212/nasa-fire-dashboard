@@ -67,6 +67,35 @@ def _call_api(request: dict, sdk_client) -> object:
         ) from error
 
 
+def _cached_text(key: str, cache_dir: Path) -> str | None:
+    """Return the cached text for a key, or None if there is no usable entry."""
+    cached = get_cached_response(key, cache_dir)
+
+    if cached is None:
+        return None
+
+    text = cached.get("text")
+
+    return text if isinstance(text, str) and text.strip() else None
+
+
+def is_cached(
+    system: str,
+    user_message: str,
+    *,
+    model: str = LLM_MODEL,
+    max_tokens: int = LLM_MAX_TOKENS,
+    cache_dir: Path = CACHE_DIR,
+) -> bool:
+    """Say whether complete() with these arguments would be a cache hit.
+
+    Reads the cache only: no key, no internet, nothing is written.
+    """
+    request = build_request(system, user_message, model, max_tokens)
+
+    return _cached_text(build_cache_key(request), cache_dir) is not None
+
+
 def complete(
     system: str,
     user_message: str,
@@ -90,13 +119,10 @@ def complete(
     """
     request = build_request(system, user_message, model, max_tokens)
     key = build_cache_key(request)
-    cached = get_cached_response(key, cache_dir)
+    cached_text = _cached_text(key, cache_dir)
 
-    if cached is not None:
-        cached_text = cached.get("text")
-
-        if isinstance(cached_text, str) and cached_text.strip():
-            return cached_text
+    if cached_text is not None:
+        return cached_text
 
     response = _call_api(request, sdk_client)
     stop_reason = getattr(response, "stop_reason", None)

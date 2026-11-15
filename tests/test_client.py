@@ -84,6 +84,35 @@ def test_request_sent_is_exactly_what_is_hashed(tmp_path: Path) -> None:
     assert get_cached_response(build_cache_key(sent), tmp_path) is not None
 
 
+def test_is_cached_reads_the_cache_without_key_sdk_or_writing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    assert not client.is_cached("sys", "user", cache_dir=tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+    run(FakeSdk(text="stored"), tmp_path, model="m")
+
+    assert client.is_cached("sys", "user", model="m", cache_dir=tmp_path)
+    assert not client.is_cached("sys", "other", model="m", cache_dir=tmp_path)
+    assert not client.is_cached("sys", "user", model="other", cache_dir=tmp_path)
+    assert not client.is_cached(
+        "sys", "user", model="m", max_tokens=1, cache_dir=tmp_path
+    )
+
+
+def test_an_entry_without_text_is_not_a_cache_hit(tmp_path: Path) -> None:
+    request = client.build_request("sys", "user", "m", 5)
+    (tmp_path / (build_cache_key(request) + ".json")).write_text(
+        json.dumps({"text": "  "}), encoding="utf-8"
+    )
+
+    assert not client.is_cached(
+        "sys", "user", model="m", max_tokens=5, cache_dir=tmp_path
+    )
+
+
 def test_a_different_prompt_or_setting_is_a_different_cache_entry(
     tmp_path: Path,
 ) -> None:
