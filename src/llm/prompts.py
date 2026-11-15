@@ -2,7 +2,7 @@ from src.config import MAX_INSIGHTS_PER_DOC, MIN_QUOTE_WORDS
 
 # Bump this when the prompt text changes: the cache key depends on the text,
 # and insights.json records the version that produced it.
-PROMPT_VERSION = "1.0.0"
+PROMPT_VERSION = "1.1.0"
 
 _OUTPUT_EXAMPLE = """{
   "insights": [
@@ -35,7 +35,8 @@ SYSTEM_PROMPT = (
     "Rules:\n"
     "1. Use ONLY the text provided. Do not use outside knowledge.\n"
     f"2. Return at most {MAX_INSIGHTS_PER_DOC} insights, the most useful "
-    "ones for comparing flame behavior (materials, oxygen, pressure, flow, "
+    "ones for fire safety on spacecraft and for comparing flame behavior "
+    "(flame spread, extinction, smoke, materials, oxygen, pressure, flow, "
     "gravity, outcomes).\n"
     "3. evidence_status is \"supported\" or \"insufficient_data\".\n"
     "   - supported: confidence is \"high\", \"medium\" or \"low\" and there "

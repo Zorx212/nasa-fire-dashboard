@@ -26,6 +26,23 @@ def test_system_prompt_states_the_configured_limits() -> None:
     assert f"at least {MIN_QUOTE_WORDS} words" in SYSTEM_PROMPT
 
 
+def test_system_prompt_covers_the_fire_safety_focus_of_the_contract() -> None:
+    # The team contract: spread, extinction, smoke, oxygen, pressure, flow,
+    # gravity and material.
+    for topic in (
+        "fire safety",
+        "flame spread",
+        "extinction",
+        "smoke",
+        "oxygen",
+        "pressure",
+        "flow",
+        "gravity",
+        "materials",
+    ):
+        assert topic in SYSTEM_PROMPT
+
+
 def test_system_prompt_does_not_ask_the_model_for_doi_or_psi_id() -> None:
     assert '"doi"' not in SYSTEM_PROMPT
     assert '"psi_id"' not in SYSTEM_PROMPT
@@ -115,8 +132,8 @@ def test_changing_the_prompt_text_requires_a_new_prompt_version() -> None:
     digest = hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
 
     assert (PROMPT_VERSION, digest) == (
-        "1.0.0",
-        "6178720fc8e02e4e17c2a8356890a19e2d1b6fa951d5d129850973252d0c3a06",
+        "1.1.0",
+        "8fc1053fbf656c02122a2d1e55929ee66f82cd1049aa22886bc74f829f262328",
     )
 
 
