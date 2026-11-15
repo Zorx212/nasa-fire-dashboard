@@ -21,7 +21,7 @@ _, _, pp = ui.outcome_counts(df["flame_outcome"]) if "flame_outcome" in df.colum
 
 c1, c2, c3, c4 = st.columns(4)
 c1.markdown(
-    ui.card("Ensayos disponibles", f"{len(df)} ensayos", f"{len(f)} coinciden con los filtros activos"),
+    ui.card("Pruebas disponibles", f"{len(df)} pruebas", f"{len(f)} coinciden con los filtros activos"),
     unsafe_allow_html=True,
 )
 c2.markdown(
@@ -35,14 +35,14 @@ c3.markdown(
 c4.markdown(
     ui.card(
         "Gravedad parcial (1/6g · 3/8g)",
-        f"{n_partial} ensayos",
+        f"{n_partial} pruebas",
         ui.badge("Brecha crítica · 0 en Luna/Marte" if n_partial == 0 else "Datos disponibles", "wn" if n_partial == 0 else "ok"),
     ),
     unsafe_allow_html=True,
 )
 
 st.markdown("### Explora la evidencia")
-st.caption("Selecciona una vista o usa las pestañas superiores para rankear ensayos, comparar condiciones, revisar hallazgos con citas y detectar vacíos de cobertura.")
+st.caption("Selecciona una vista o usa las pestañas superiores para rankear pruebas, comparar condiciones, revisar hallazgos con citas y detectar vacíos de cobertura.")
 
 m1, m2, m3, m4 = st.columns(4)
 with m1:
@@ -50,7 +50,7 @@ with m1:
         ui.card(
             "01 · Veredicto y relevancia",
             "Ranking",
-            "Puntaje explicable con pesos ajustables y detalle por ensayo.",
+            "Puntaje explicable con pesos ajustables y detalle por prueba.",
             kpi=False,
         ),
         unsafe_allow_html=True,

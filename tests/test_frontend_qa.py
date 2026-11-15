@@ -135,7 +135,7 @@ class TestStreamlitRoutes(unittest.TestCase):
         self.assertEqual(len(at.exception), 0)
         self.assertEqual(at.radio[1].options, ["Todos", "Comparación", "Experimento"])
         all_md = "\n".join(m.value for m in at.markdown)
-        self.assertIn("Insight 1 · 3 ensayos citados", all_md)
+        self.assertIn("Insight 1 · 3 pruebas citadas", all_md)
         self.assertIn('<details class="cite-det">', all_md)
         self.assertIn("Ver cobertura", "\n".join([all_md] + [pl.label for pl in at.get("page_link")]))
         self.assertEqual(len(at.main.expander), 0)  # Addendum: eliminar st.expander en Insights
@@ -216,7 +216,7 @@ class TestStreamlitRoutes(unittest.TestCase):
                     "scope": "experiment",
                     "psi_ids": ["PSI-99"],
                     "title": "Gravedad lunar con polímeros gruesos",
-                    "description": "No se hallaron ensayos bajo 1/6 g real en los documentos analizados.",
+                    "description": "No se hallaron pruebas bajo 1/6 g real en los documentos analizados.",
                     "evidence_status": "insufficient_data",
                     "confidence": "low",
                     "citations": [],
@@ -232,7 +232,7 @@ class TestStreamlitRoutes(unittest.TestCase):
             self.assertIn("https://doi.org/10.0000/psi-22", all_md)
             self.assertIn("DOI pendiente", all_md)
             self.assertIn("A 30% O2 la propagación fue sostenida", all_md)
-            self.assertIn("No hay ensayos que respondan esto. Revisa la cobertura.", all_md)
+            self.assertIn("No hay pruebas que respondan esto. Revisa la cobertura.", all_md)
             self.assertNotIn("Este formato no incluye cita textual", all_md)
 
     def test_cobertura_gap_hero_and_fillpattern_and_scenario_spin(self):
@@ -242,7 +242,7 @@ class TestStreamlitRoutes(unittest.TestCase):
         self.assertEqual(len(at_cov.exception), 0)
         cov_md = "\n".join(m.value for m in at_cov.markdown)
         self.assertIn("gap-num", cov_md)
-        self.assertIn("ensayos en gravedad parcial real (1/6 g · 3/8 g)", cov_md)
+        self.assertIn("pruebas en gravedad parcial real (1/6 g · 3/8 g)", cov_md)
         cov_spec = json.loads(at_cov.get("plotly_chart")[0].proto.spec)
         self.assertTrue(any(t.get("fillpattern", {}).get("shape") == "/" for t in cov_spec["data"]))
 

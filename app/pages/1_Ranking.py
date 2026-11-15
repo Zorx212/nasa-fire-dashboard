@@ -31,7 +31,7 @@ if f.empty:
 
 ranked_df, provisional = ui.rank_df(f, w)
 ui.provisional_notice(provisional, "Ranking", "src/ranking.py")
-ranked = ranked_df.reset_index(drop=True)
+ranked = ui.best_per_study_first(ranked_df).reset_index(drop=True)
 _, _, pp = ui.outcome_counts(f["flame_outcome"])
 n_psi = int(f["psi_id"].nunique()) if "psi_id" in f.columns else 0
 
@@ -44,7 +44,7 @@ if not isinstance(cur_sel, int) or cur_sel < 0 or cur_sel >= len(top):
 c1_val = (
     f'<span class="{cnt_cls}" style="--n:0"></span> exactos<!-- 0 exactos -->'
     if using_nearest
-    else f'<span class="{cnt_cls}" style="--n:{len(f)}"></span> ensayos'
+    else f'<span class="{cnt_cls}" style="--n:{len(f)}"></span> pruebas'
 )
 c1_sub = (
     f'Mostrando <span class="{cnt_cls}" style="--n:{len(f)}"></span> cercanos · <span class="{cnt_cls}" style="--n:{n_psi}"></span> estudios PSI'
@@ -58,7 +58,7 @@ if scen in ui.SCEN:
     n_zone = ui.zone_count(df, scen)
     c3_lbl = f"Cobertura de {E(scen)}"
     c3_val = "Sin cobertura" if n_zone == 0 else "Parcial" if n_zone < 5 else "Amplia"
-    c3_sub = f'<span class="{cnt_cls}" style="--n:{n_zone}"></span> ensayos en la zona'
+    c3_sub = f'<span class="{cnt_cls}" style="--n:{n_zone}"></span> pruebas en la zona'
 else:
     c3_lbl = "Estado de cobertura"
     c3_val = "Sin escenario"
@@ -67,7 +67,7 @@ else:
 st.markdown(
     ui.strip(
         [
-            ("Ensayos coincidentes", c1_val, c1_sub),
+            ("Pruebas coincidentes", c1_val, c1_sub),
             ("Resultado dominante", c2_val, c2_sub),
             (c3_lbl, c3_val, c3_sub),
         ]
@@ -105,10 +105,10 @@ head = "".join(
 table_html = (
     f'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:12px;flex-wrap:wrap">'
     f'<h3 style="margin:0">Ranking de experimentos y materiales</h3>'
-    f'<span style="color:#64748B;font-size:12px">Mostrando {len(top)} de {len(ranked)} ensayos</span></div>'
+    f'<span style="color:#64748B;font-size:12px">Mostrando {len(top)} de {len(ranked)} pruebas</span></div>'
     f'<div style="overflow-x:auto"><table class="rk"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table></div>'
 )
-st.markdown(ui.ficha(f"Ranking · {len(ranked)} ensayos", table_html), unsafe_allow_html=True)
+st.markdown(ui.ficha(f"Ranking · {len(ranked)} pruebas", table_html), unsafe_allow_html=True)
 
 if sc:
     with st.container(key="rk_chart_card"):
@@ -131,7 +131,7 @@ if sc:
             orientation="h",
             barmode="stack",
             color_discrete_map=ui.COMP,
-            labels={"aporte": "Aporte ponderado al puntaje", "experiment_id": "Ensayo", "componente": "Componente"},
+            labels={"aporte": "Aporte ponderado al puntaje", "experiment_id": "Prueba", "componente": "Componente"},
         )
         fig.update_layout(
             title="Desglose ponderado del puntaje (primeros 10)",
@@ -148,7 +148,7 @@ if sc:
         st.markdown(f'<div class="comp-legend">{leg}</div>', unsafe_allow_html=True)
 
 sel_idx = st.selectbox(
-    "Detalle del ensayo",
+    "Detalle de la prueba",
     range(len(top)),
     key="rk_sel",
     format_func=lambda idx: f"{ui.clean_str(top.loc[idx, 'experiment_id'])} · {ui.clean_str(top.loc[idx, 'psi_id'])} · {ui.clean_str(top.loc[idx, 'material_or_fuel'])}",

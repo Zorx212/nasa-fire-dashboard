@@ -1,4 +1,4 @@
-"""Capa visual (solo frontend): CSS, componentes HTML ("fichas de ensayo") y sidebar compartido.
+"""Capa visual (solo frontend): CSS, componentes HTML ("fichas de prueba") y sidebar compartido.
 No toca datos ni ranking: todo sale de data_loader."""
 import re
 from html import escape as E
@@ -392,7 +392,7 @@ section[data-testid="stSidebar"] [data-testid="stRadioGroup"][data-orientation="
   font-variant-numeric: tabular-nums;
 }
 
-/* Ficha de ensayo (.f) con marcas de registro en las 4 esquinas y pestaña .tag */
+/* Ficha de prueba (.f) con marcas de registro en las 4 esquinas y pestaña .tag */
 .f,
 .st-key-cov_map_ficha {
   position: relative;
@@ -641,7 +641,7 @@ section[data-testid="stSidebar"] [data-testid="stRadioGroup"][data-orientation="
   color: var(--gray) !important;
 }
 
-/* Barra apilada de puntaje del ensayo */
+/* Barra apilada de puntaje de la prueba */
 .stacked-row {
   display: flex;
   align-items: center;
@@ -1703,7 +1703,7 @@ def outcome_counts(series):
 
 
 def outcome_known(series):
-    """(ensayos con resultado registrado, total) para explicar en qué se basa un porcentaje."""
+    """(pruebas con resultado registrado, total) para explicar en qué se basa un porcentaje."""
     s = series if isinstance(series, pd.Series) else pd.Series(series)
     return int(s.map(lambda v: clean_str(v, "") != "").sum()), int(len(s))
 
@@ -1742,7 +1742,7 @@ def badge(t, k=None):
 
 
 def ficha(tag, body_html):
-    """Ficha de ensayo con marcas de registro en las esquinas y pestaña mono arriba a la izquierda (una sola línea)."""
+    """Ficha de prueba con marcas de registro en las esquinas y pestaña mono arriba a la izquierda (una sola línea)."""
     return f'<div class="f"><span class="tag">{E(str(tag))}</span>{body_html}</div>'
 
 
@@ -1799,9 +1799,9 @@ def locator(df, hi, w=104, h=84, zone=None):
     if len(hi_pairs) == 1:
         aria = f"Ubicación en O₂ y presión: O₂ {hi_pairs[0][0]:g} %, {hi_pairs[0][1]:.1f} kPa"
     elif len(hi_pairs) > 1:
-        aria = f"Ubicación en O₂ y presión: {len(hi_pairs)} ensayos citados"
+        aria = f"Ubicación en O₂ y presión: {len(hi_pairs)} pruebas citadas"
     else:
-        aria = "Ubicación en O₂ y presión: sin ensayos destacados"
+        aria = "Ubicación en O₂ y presión: sin pruebas destacados"
 
     zx0, zx1 = X(z["o2"][0]), X(z["o2"][1])
     zy0, zy1 = Y(z["p"][1]), Y(z["p"][0])
@@ -1841,7 +1841,22 @@ def _unwrap(res):
 def rank_df(df, weights):
     """Devuelve (df_rankeado, provisional) con cualquier versión de data_loader.rank."""
     safe_w = weights if sum(weights.values()) > 0 else dict(DEFAULT_WEIGHTS)
-    return _unwrap(_dl.rank(df, safe_w))
+    ranked, provisional = _unwrap(_dl.rank(df, safe_w))
+    # src.ranking.rank conserva el orden original del CSV; el ranking debe ir de mayor a menor puntaje.
+    if "score_total" in ranked.columns:
+        ranked = ranked.sort_values("score_total", ascending=False, kind="mergesort")
+    return ranked, provisional
+
+
+def best_per_study_first(ranked, id_col="psi_id"):
+    """Pone primero la mejor prueba de cada estudio PSI (por puntaje) y despues el resto,
+    para que el top no muestre siempre el mismo estudio."""
+    if id_col not in ranked.columns or "score_total" not in ranked.columns:
+        return ranked
+    ordered = ranked.sort_values("score_total", ascending=False, kind="mergesort")
+    firsts = ordered.groupby(id_col, sort=False).head(1)
+    rest = ordered.drop(firsts.index)
+    return pd.concat([firsts, rest])
 
 
 def coverage_df(df):

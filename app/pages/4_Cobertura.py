@@ -24,9 +24,9 @@ st.markdown(
     f'<div class="{hero_cls}">'
     f'<div class="gap-line">'
     f'<span class="gap-num">{npar}</span>'
-    f'<span class="gap-unit">ensayos en gravedad parcial real (1/6 g · 3/8 g)</span>'
+    f'<span class="gap-unit">pruebas en gravedad parcial real (1/6 g · 3/8 g)</span>'
     f'</div>'
-    f'<div class="gap-sub">{nl} ensayos dentro de Base Lunar / Rover (30–60 % O₂, hasta 70.3 kPa)</div>'
+    f'<div class="gap-sub">{nl} pruebas dentro de Base Lunar / Rover (30–60 % O₂, hasta 70.3 kPa)</div>'
     f'</div>',
     unsafe_allow_html=True,
 )
@@ -82,7 +82,7 @@ for nombre, z in ui.SCEN.items():
             )
         )
     ax, ay, x_anc, y_anc = zone_anchors.get(nombre, ((x0 + x1) / 2, (y0 + y1) / 2, "center", "middle"))
-    lbl = f"{nombre} · {nz} ensayos" if nz > 0 else f"{nombre} · sin ensayos"
+    lbl = f"{nombre} · {nz} pruebas" if nz > 0 else f"{nombre} · sin pruebas"
     fig.add_annotation(
         x=ax,
         y=ay,
@@ -159,11 +159,11 @@ with st.container(key="cov_map_ficha"):
 st.markdown(
     ui.strip(
         [
-            ("Microgravedad (0 g)", f"{n0} ensayos", '<span style="color:#0F766E;font-weight:600">Cubierto</span>' if n0 > 0 else "Sin registros"),
-            ("Gravedad normal (1 g)", f"{n1} ensayos", "Referencia"),
+            ("Microgravedad (0 g)", f"{n0} pruebas", '<span style="color:#0F766E;font-weight:600">Cubierto</span>' if n0 > 0 else "Sin registros"),
+            ("Gravedad normal (1 g)", f"{n1} pruebas", "Referencia"),
             (
                 "Gravedad parcial (1/6 g · 3/8 g)",
-                f"{npar} ensayos",
+                f"{npar} pruebas",
                 '<span style="color:#B91C1C;font-weight:600">Brecha crítica</span>'
                 if npar == 0
                 else '<span style="color:#0F766E;font-weight:600">Cubierto</span>',

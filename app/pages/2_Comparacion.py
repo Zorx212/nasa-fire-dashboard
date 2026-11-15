@@ -19,7 +19,7 @@ filtered_opts = [i for i in f["experiment_id"].tolist() if i in df_indexed.index
 default_opts = filtered_opts[:2] if len(filtered_opts) >= 2 else opts[:2]
 
 if len(f) < len(df):
-    st.caption(f"Filtro lateral activo: {len(filtered_opts)} de {len(opts)} ensayos coinciden (puedes comparar cualquiera de la tabla maestra).")
+    st.caption(f"Filtro lateral activo: {len(filtered_opts)} de {len(opts)} pruebas coinciden (puedes comparar cualquiera de la tabla maestra).")
 
 chosen = st.multiselect(
     "Elige 2 o 3 experimentos",
@@ -69,7 +69,7 @@ matrix_html = (
     f'<div style="color:#64748B;font-size:12px;margin-top:10px">'
     f'Las filas en negrita con línea punteada señalan diferencias. Cada variable conserva su unidad; la comparación no mezcla escalas.</div>'
 )
-st.markdown(ui.ficha(f"Comparación · {len(chosen)} ensayos", matrix_html), unsafe_allow_html=True)
+st.markdown(ui.ficha(f"Comparación · {len(chosen)} pruebas", matrix_html), unsafe_allow_html=True)
 
 # --- Gráficas comparativas sobre fichas planas con borde 1 px y paleta cerrada ---
 exp_labels = [f"{exp_id} ({ui.clean_str(sel.loc[exp_id, 'psi_id'])})" for exp_id in chosen]
@@ -135,7 +135,7 @@ with right_col:
         }
         units_present.discard("")
         if len(units_present) > 1:
-            st.warning("Los ensayos seleccionados tienen unidades de propagación distintas; no se grafican en un mismo eje.")
+            st.warning("Las pruebas seleccionadas tienen unidades de propagación distintas; no se grafican en un mismo eje.")
         else:
             unit_str = next(iter(units_present), ui.clean_str(sel.iloc[0].get("spread_rate_unit"), "mm/s"))
             sp_raw = [pd.to_numeric(pd.Series([sel.loc[eid].get("flame_spread_rate")]), errors="coerce").iloc[0] for eid in chosen]

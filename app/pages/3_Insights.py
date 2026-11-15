@@ -107,11 +107,11 @@ for k, it in enumerate(visible_items, 1):
         f'<div class="f-loc">{loc_svg}</div></div>'
         f'{fn_html}'
     )
-    st.markdown(ui.ficha(f"Insight {k} · {len(hi_df)} ensayos citados", body_html), unsafe_allow_html=True)
+    st.markdown(ui.ficha(f"Insight {k} · {len(hi_df)} pruebas citadas", body_html), unsafe_allow_html=True)
 
     if it["st"] == "w":
         st.markdown(
-            '<div style="font-size:12.5px;color:#64748B;margin:-4px 0 4px 0">No hay ensayos que respondan esto. Revisa la cobertura.</div>',
+            '<div style="font-size:12.5px;color:#64748B;margin:-4px 0 4px 0">No hay pruebas que respondan esto. Revisa la cobertura.</div>',
             unsafe_allow_html=True,
         )
         try:
