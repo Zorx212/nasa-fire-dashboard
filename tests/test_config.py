@@ -3,9 +3,9 @@ import pytest
 from src import config
 
 
-def test_temperature_is_a_float_so_cache_keys_stay_stable() -> None:
-    assert isinstance(config.LLM_TEMPERATURE, float)
-    assert config.LLM_TEMPERATURE == 0.0
+def test_no_sampling_setting_is_defined() -> None:
+    # The API rejects temperature, top_p and top_k, so none may be configured.
+    assert not hasattr(config, "LLM_TEMPERATURE")
 
 
 def test_generation_limits_are_positive_integers() -> None:

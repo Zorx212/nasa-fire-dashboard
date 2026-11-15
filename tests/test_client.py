@@ -71,17 +71,16 @@ def test_cache_hit_needs_no_key_and_no_sdk_client(
 
 def test_request_sent_is_exactly_what_is_hashed(tmp_path: Path) -> None:
     sdk = FakeSdk()
-    run(sdk, tmp_path, model="m", max_tokens=50, temperature=0.0)
+    run(sdk, tmp_path, model="m", max_tokens=50)
     sent = sdk.calls[0]
 
     assert sent == {
         "model": "m",
         "max_tokens": 50,
-        "temperature": 0.0,
         "system": "sys",
         "messages": [{"role": "user", "content": "user"}],
     }
-    assert isinstance(sent["temperature"], float)
+    assert not {"temperature", "top_p", "top_k"} & sent.keys()
     assert get_cached_response(build_cache_key(sent), tmp_path) is not None
 
 

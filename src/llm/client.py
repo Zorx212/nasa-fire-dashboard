@@ -7,7 +7,6 @@ import anthropic
 from src.config import (
     LLM_MAX_TOKENS,
     LLM_MODEL,
-    LLM_TEMPERATURE,
     get_api_key,
 )
 from src.llm.cache import (
@@ -26,13 +25,15 @@ def build_request(
     user_message: str,
     model: str,
     max_tokens: int,
-    temperature: float,
 ) -> dict:
-    """Build the exact request sent to the API (it is also the cache key)."""
+    """Build the exact request sent to the API (it is also the cache key).
+
+    There is no sampling setting: the API no longer accepts temperature,
+    top_p or top_k. Repeatability comes from the cache.
+    """
     return {
         "model": model,
         "max_tokens": max_tokens,
-        "temperature": temperature,
         "system": system,
         "messages": [{"role": "user", "content": user_message}],
     }
@@ -72,7 +73,6 @@ def complete(
     *,
     model: str = LLM_MODEL,
     max_tokens: int = LLM_MAX_TOKENS,
-    temperature: float = LLM_TEMPERATURE,
     cache_dir: Path = CACHE_DIR,
     sdk_client: anthropic.Anthropic | None = None,
     validate: Callable[[str], None] | None = None,
@@ -88,9 +88,7 @@ def complete(
     text and may raise (for example ValueError); an answer that fails is
     never cached, so a bad answer cannot become permanent.
     """
-    request = build_request(
-        system, user_message, model, max_tokens, temperature
-    )
+    request = build_request(system, user_message, model, max_tokens)
     key = build_cache_key(request)
     cached = get_cached_response(key, cache_dir)
 
