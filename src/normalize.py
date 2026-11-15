@@ -196,12 +196,16 @@ def make_ids_unique(master: pd.DataFrame) -> pd.DataFrame:
     return master
 
 
+def _norm_key(key: str) -> str:
+    """'PSI_101/PSI-101-tabla.csv' y 'PSI_101/PSI-101_tabla.csv' dan la misma llave."""
+    return re.sub(r"[\s_\-]+", "_", key).lower()
+
+
 def build_master() -> pd.DataFrame:
-    # Ignora diferencias entre espacios y guiones bajos en los nombres de archivo
-    specs = {k.replace(" ", "_"): v for k, v in SPECS.items()}
+    specs = {_norm_key(k): v for k, v in SPECS.items()}
     parts = []
     for key, df in ingest().items():
-        spec = specs.get(key.replace(" ", "_"))
+        spec = specs.get(_norm_key(key))
         if spec is None:
             print(f"[aviso] sin spec, se omite: {key}")
             continue
@@ -212,7 +216,6 @@ def build_master() -> pd.DataFrame:
     master = make_ids_unique(master)
     master = master.merge(load_catalog(), on="psi_id", how="left")
     return master.reindex(columns=MASTER_COLUMNS)  # lo que falta queda vacío, nunca 0
-
 
 CONTRACT_COLUMNS = [
     "experiment_id", "psi_id", "doi", "license", "title", "material_or_fuel",
