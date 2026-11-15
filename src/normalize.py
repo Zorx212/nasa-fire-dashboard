@@ -129,7 +129,7 @@ SPECS = {
             "extract": True,                                          # "2.1 mm/s" -> 2.1; "Note 4" -> NaN
         },
         "notes_from": [
-            "Samle Thickness ", "Sample Length ", "Sample Width (cm)",
+            "Samle Thickness", "Sample Length", "Sample Width (cm)",
             "Percent O2 (Note 1)", "Ignition Power (W)", "Ignition Time (s)",
             "Burn Time (s)", "Flow Direction", "?-g Burn Length",
             "?-g Spread Length", "1-g Burn Length", "1-g Spread Rate",
@@ -235,6 +235,9 @@ def normalize_table(key: str, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
         out["flame_spread_rate"] = series * s.get("factor", 1)
         out["spread_rate_unit"] = s["unit"]
 
+    missing = [c for c in spec.get("notes_from", []) if c not in df.columns]
+    if missing:
+        print(f"[aviso] {key}: columnas de notes_from que no existen: {missing}")
     cols = [c for c in spec.get("notes_from", []) if c in df.columns]
 
     def build_note(row):
@@ -286,6 +289,10 @@ def build_master() -> pd.DataFrame:
         raise SystemExit("[ERROR] ningún CSV coincide con SPECS. Revisa las llaves.")
     master = pd.concat(parts, ignore_index=True)
     master = make_ids_unique(master)
+        # Si hay velocidad de propagación medida, la llama propagó
+    if "flame_spread_rate" in master:
+        prop = master["flame_spread_rate"].notna() & master["flame_outcome"].isna()
+        master.loc[prop, "flame_outcome"] = "propagó"
     master = master.merge(load_catalog(), on="psi_id", how="left")
     master = master.reindex(columns=MASTER_COLUMNS)  # lo que falta queda vacío, nunca 0
     master["spread_rate_unit"] = master["spread_rate_unit"].fillna("mm/s")  # unidad estándar, como en el mock
