@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,10 +11,13 @@ from src.llm.assemble import AssembleResult, Rejection, assemble_insights
 from src.llm.client import complete
 from src.llm.parse import parse_model_output
 from src.llm.prompts import PROMPT_VERSION, SYSTEM_PROMPT, build_user_message
-from src.llm.schemas import InsightsDocument
+from src.llm.schemas import Insight, InsightsDocument
 from src.paths import CATALOG_PATH, INSIGHTS_PATH, REJECTED_PATH, TEXT_DIR
 
 MALFORMED_TITLE = "<malformed insight>"
+UNUSABLE_TITLE = "<unusable model answer>"
+TEXT_FILE_PATTERN = "*.json"
+PDF_TEXT_COMMAND = "python -m src.pdf_text <path to the PDF>"
 
 # A function that takes (system prompt, user message) and returns the
 # model's text. The real one goes through the cache and the API.
@@ -23,12 +27,12 @@ LlmCall = Callable[[str, str], str]
 def find_text_files(psi_id: str, text_dir: Path = TEXT_DIR) -> list[Path]:
     """Return the extracted-text JSON files of a PSI or raise clearly."""
     folder = Path(text_dir) / psi_id
-    files = sorted(folder.glob("*.json")) if folder.is_dir() else []
+    files = sorted(folder.glob(TEXT_FILE_PATTERN)) if folder.is_dir() else []
 
     if not files:
         raise FileNotFoundError(
             f"No extracted text for {psi_id} in {folder}. "
-            "Run: python -m src.pdf_text <path to the PDF>"
+            f"Run: {PDF_TEXT_COMMAND}"
         )
 
     return files
@@ -40,6 +44,11 @@ def load_extracted_doc(text_path: Path) -> dict:
         return json.load(file)
 
 
+def check_answer(text: str) -> None:
+    """Raise ValueError if the model's text is not usable (so it is not cached)."""
+    parse_model_output(text)
+
+
 def extract_document(
     extracted_doc: dict,
     catalog: dict[str, str],
@@ -49,13 +58,13 @@ def extract_document(
     """Ask the model about one document and verify what it answers.
 
     Insights the model wrote with the wrong shape are added to the rejected
-    list with their position. Raises ValueError if the answer is not a JSON
-    object with an 'insights' list.
+    list with their position and raw value. Raises ValueError, naming the
+    file, if the answer is not a JSON object with an 'insights' list.
     """
     name = extracted_doc.get("filename", "<unknown file>")
-    answer = llm_call(SYSTEM_PROMPT, build_user_message(extracted_doc))
 
     try:
+        answer = llm_call(SYSTEM_PROMPT, build_user_message(extracted_doc))
         parsed = parse_model_output(answer)
     except ValueError as error:
         raise ValueError(f"{name}: {error}") from error
@@ -69,7 +78,11 @@ def extract_document(
             psi_id=psi_id,
             title=MALFORMED_TITLE,
             reasons=[failure.message],
-            insight=failure.raw if isinstance(failure.raw, dict) else {"raw": failure.raw},
+            insight=(
+                failure.raw
+                if isinstance(failure.raw, dict)
+                else {"raw": failure.raw}
+            ),
         )
         for failure in parsed.errors
     ]
@@ -80,11 +93,26 @@ def extract_document(
 
 
 def _write_json(path: Path, data: dict) -> None:
+    """Write data as JSON through a temporary file, so a crash cannot leave
+    a half-written file in place of a good one."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
 
-    with path.open("w", encoding="utf-8") as file:
+    with temporary.open("w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
         file.write("\n")
+
+    temporary.replace(path)
+
+
+def _check_requested_psi(extracted_doc: dict, psi_id: str, text_path: Path) -> None:
+    """Raise ValueError if a file says it is another PSI than the requested one."""
+    found = extracted_doc.get("psi_id")
+
+    if found != psi_id:
+        raise ValueError(
+            f"{text_path} says psi_id={found!r} but {psi_id} was requested."
+        )
 
 
 def run_extraction(
@@ -99,20 +127,37 @@ def run_extraction(
 ) -> InsightsDocument:
     """Extract, verify and write insights.json and rejected.json.
 
-    rejected.json is always written. insights.json is written only if at
-    least one insight survived; otherwise RuntimeError is raised and an
-    existing insights.json is left untouched.
+    A document whose answer is unusable does not stop the others: it is
+    listed in rejected.json. rejected.json is always written. insights.json
+    is written only if at least one insight survived; otherwise
+    RuntimeError is raised and an existing insights.json is left untouched.
+    Errors that are not about one answer (no key, no internet, a file that
+    names another PSI) stop the run.
     """
-    insights, rejected, warnings = [], [], []
+    insights: list[Insight] = []
+    rejected: list[Rejection] = []
+    warnings: list[str] = []
 
     for psi_id in psi_ids:
         for text_path in find_text_files(psi_id, text_dir):
-            result = extract_document(
-                load_extracted_doc(text_path),
-                catalog,
-                llm_call,
-                min_quote_words,
-            )
+            extracted_doc = load_extracted_doc(text_path)
+            _check_requested_psi(extracted_doc, psi_id, text_path)
+
+            try:
+                result = extract_document(
+                    extracted_doc, catalog, llm_call, min_quote_words
+                )
+            except ValueError as error:
+                rejected.append(
+                    Rejection(
+                        psi_id=psi_id,
+                        title=UNUSABLE_TITLE,
+                        reasons=[str(error)],
+                        insight={},
+                    )
+                )
+                continue
+
             insights += result.insights
             rejected += result.rejected
             warnings += result.warnings
@@ -177,19 +222,32 @@ def main() -> None:
         help="Do not fail if the catalog is missing: citations get no DOI.",
     )
     args = parser.parse_args()
+    model = LLM_MODEL
 
-    catalog = _load_catalog(args.catalog, args.no_catalog)
-    print(
-        f"Model {LLM_MODEL}, prompt {PROMPT_VERSION}. "
-        "Cached answers are free; a cache miss calls the paid API."
-    )
-    document = run_extraction(
-        args.psi_ids,
-        catalog,
-        lambda system, user: complete(system, user, model=LLM_MODEL),
-    )
+    try:
+        catalog = _load_catalog(args.catalog, args.no_catalog)
+        print(
+            f"Model {model}, prompt {PROMPT_VERSION}. "
+            "Cached answers are free; a cache miss calls the paid API."
+        )
+        document = run_extraction(
+            args.psi_ids,
+            catalog,
+            lambda system, user: complete(
+                system, user, model=model, validate=check_answer
+            ),
+            model=model,
+        )
+    except (RuntimeError, ValueError, FileNotFoundError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
+
     print(f"Wrote {len(document.insights)} insight(s) to {INSIGHTS_PATH}")
-    print(f"Rejected insights and warnings: {REJECTED_PATH}")
+    print(
+        "Rejected insights and warnings: "
+        f"{REJECTED_PATH}. A run replaces insights.json, so list every "
+        "PSI in one command."
+    )
 
 
 if __name__ == "__main__":
