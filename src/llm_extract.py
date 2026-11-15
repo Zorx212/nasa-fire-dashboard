@@ -125,10 +125,10 @@ def run_extraction(
     rejected_path: Path = REJECTED_PATH,
     min_quote_words: int = MIN_QUOTE_WORDS,
 ) -> InsightsDocument:
-    """Extract, verify and write insights.json and rejected.json.
+    """Extract, verify and write insights.json and insights_rejected.json.
 
     A document whose answer is unusable does not stop the others: it is
-    listed in rejected.json. rejected.json is always written. insights.json
+    listed in insights_rejected.json, which is always written. insights.json
     is written only if at least one insight survived; otherwise
     RuntimeError is raised and an existing insights.json is left untouched.
     Errors that are not about one answer (no key, no internet, a file that

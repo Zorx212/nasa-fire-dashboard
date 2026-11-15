@@ -3,7 +3,7 @@ from src import paths
 
 def test_output_paths_live_under_data_processed() -> None:
     assert paths.INSIGHTS_PATH == paths.PROCESSED_DIR / "insights.json"
-    assert paths.REJECTED_PATH == paths.PROCESSED_DIR / "rejected.json"
+    assert paths.REJECTED_PATH == paths.PROCESSED_DIR / "insights_rejected.json"
     assert paths.PROCESSED_DIR == paths.PROJECT_ROOT / "data" / "processed"
 
 

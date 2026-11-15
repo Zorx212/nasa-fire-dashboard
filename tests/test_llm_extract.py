@@ -77,7 +77,7 @@ def run(llm, tmp_path: Path, text_dir: Path, catalog=CATALOG, psi_ids=("PSI-107"
         model="test-model",
         text_dir=text_dir,
         insights_path=tmp_path / "out" / "insights.json",
-        rejected_path=tmp_path / "out" / "rejected.json",
+        rejected_path=tmp_path / "out" / "insights_rejected.json",
     )
 
 
@@ -107,7 +107,7 @@ def test_rejected_json_lists_what_failed_and_why(
     tmp_path: Path, text_dir: Path
 ) -> None:
     run(FakeLlm(GOOD, INVENTED), tmp_path, text_dir)
-    rejected = read(tmp_path, "rejected.json")
+    rejected = read(tmp_path, "insights_rejected.json")
 
     assert [r["title"] for r in rejected["rejected"]] == ["Invented"]
     assert rejected["rejected"][0]["psi_id"] == "PSI-107"
@@ -133,7 +133,7 @@ def test_missing_doi_is_a_warning_in_rejected_json(
 ) -> None:
     run(FakeLlm(GOOD), tmp_path, text_dir, catalog={})
 
-    assert read(tmp_path, "rejected.json")["warnings"] == [
+    assert read(tmp_path, "insights_rejected.json")["warnings"] == [
         "No DOI in the catalog for PSI-107."
     ]
     assert read(tmp_path, "insights.json")["insights"][0]["citations"][0]["doi"] is None
@@ -144,7 +144,7 @@ def test_malformed_insight_is_rejected_but_the_others_survive(
 ) -> None:
     broken = {"title": "No status"}
     run(FakeLlm(GOOD, broken), tmp_path, text_dir)
-    rejected = read(tmp_path, "rejected.json")["rejected"]
+    rejected = read(tmp_path, "insights_rejected.json")["rejected"]
 
     assert len(read(tmp_path, "insights.json")["insights"]) == 1
     assert rejected[0]["title"] == "<malformed insight>"
@@ -163,7 +163,7 @@ def test_when_nothing_survives_it_raises_and_writes_no_insights_json(
         run(FakeLlm(INVENTED), tmp_path, text_dir)
 
     assert insights_path.read_text(encoding="utf-8") == '{"keep": "me"}'
-    assert len(read(tmp_path, "rejected.json")["rejected"]) == 1
+    assert len(read(tmp_path, "insights_rejected.json")["rejected"]) == 1
 
 
 def test_an_answer_that_is_not_json_is_recorded_and_nothing_is_written(
@@ -172,7 +172,7 @@ def test_an_answer_that_is_not_json_is_recorded_and_nothing_is_written(
     with pytest.raises(RuntimeError, match="No insight survived"):
         run(FakeLlm(raw="I cannot help with that."), tmp_path, text_dir)
 
-    rejected = read(tmp_path, "rejected.json")["rejected"]
+    rejected = read(tmp_path, "insights_rejected.json")["rejected"]
 
     assert rejected[0]["title"] == "<unusable model answer>"
     assert "PSI-107-SPICE-FinalReport.pdf" in rejected[0]["reasons"][0]
@@ -196,7 +196,7 @@ def test_one_unusable_document_does_not_stop_the_others(
         return good(system, user)
 
     run(llm, tmp_path, text_dir, psi_ids=("PSI-108", "PSI-107"))
-    rejected = read(tmp_path, "rejected.json")["rejected"]
+    rejected = read(tmp_path, "insights_rejected.json")["rejected"]
 
     assert len(read(tmp_path, "insights.json")["insights"]) == 1
     assert [r["psi_id"] for r in rejected] == ["PSI-108"]
@@ -244,7 +244,7 @@ def test_files_are_written_through_a_temporary_file_that_is_removed(
 
     assert sorted(p.name for p in (tmp_path / "out").iterdir()) == [
         "insights.json",
-        "rejected.json",
+        "insights_rejected.json",
     ]
 
 
