@@ -15,7 +15,7 @@ from src.llm_extract import (
     find_text_files,
     run_extraction,
 )
-from src.paths import TEXT_DIR
+from src.paths import INSIGHTS_PATH, REJECTED_PATH, TEXT_DIR
 
 PSI_107_JSON = TEXT_DIR / "PSI-107" / "PSI-107-SPICE-FinalReport.json"
 CATALOG = {"PSI-107": "10.1234/spice"}
@@ -309,6 +309,57 @@ def test_main_prints_the_error_and_exits_with_one(monkeypatch, capsys) -> None:
 
     assert info.value.code == 1
     assert "No extracted text for PSI-000-not-extracted" in capsys.readouterr().err
+
+
+def test_main_dry_run_shows_the_request_and_sends_and_writes_nothing(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    def forbidden(*args, **kwargs):
+        raise AssertionError("A dry run tried to create the real API client.")
+
+    monkeypatch.setattr(client.anthropic, "Anthropic", forbidden)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(llm_extract, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr("sys.argv", ["llm_extract", "PSI-107", "--dry-run"])
+    before = [INSIGHTS_PATH.exists(), REJECTED_PATH.exists()]
+
+    llm_extract.main()
+
+    out = capsys.readouterr().out
+    assert "PSI-107" in out
+    assert "page block(s) sent" in out
+    assert "cache miss (would call the paid API)" in out
+    assert "Nothing was sent and nothing was written." in out
+    assert [INSIGHTS_PATH.exists(), REJECTED_PATH.exists()] == before
+    assert not (tmp_path / "cache").exists()
+
+
+def test_main_dry_run_fails_clearly_without_extracted_text(
+    monkeypatch, capsys
+) -> None:
+    monkeypatch.setattr(
+        "sys.argv", ["llm_extract", "PSI-000-not-extracted", "--dry-run"]
+    )
+
+    with pytest.raises(SystemExit) as info:
+        llm_extract.main()
+
+    assert info.value.code == 1
+    assert "No extracted text for PSI-000-not-extracted" in capsys.readouterr().err
+
+
+def test_run_dry_run_checks_the_psi_id_like_a_real_run(
+    tmp_path: Path, text_dir: Path
+) -> None:
+    (text_dir / "PSI-108").mkdir()
+    (text_dir / "PSI-108" / PSI_107_JSON.name).write_bytes(
+        PSI_107_JSON.read_bytes()
+    )
+
+    with pytest.raises(ValueError, match="PSI-108"):
+        llm_extract.run_dry_run(
+            ["PSI-108"], "m", 10, text_dir, tmp_path / "cache"
+        )
 
 
 class FakeSdk:

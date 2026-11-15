@@ -6,13 +6,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.catalog import load_catalog
-from src.config import LLM_MODEL, MIN_QUOTE_WORDS
+from src.config import LLM_MAX_TOKENS, LLM_MODEL, MIN_QUOTE_WORDS
 from src.llm.assemble import AssembleResult, Rejection, assemble_insights
 from src.llm.client import complete
+from src.llm.dry_run import RequestPreview, format_preview, preview_request
 from src.llm.parse import parse_model_output
 from src.llm.prompts import PROMPT_VERSION, SYSTEM_PROMPT, build_user_message
 from src.llm.schemas import Insight, InsightsDocument
-from src.paths import CATALOG_PATH, INSIGHTS_PATH, REJECTED_PATH, TEXT_DIR
+from src.paths import (
+    CACHE_DIR,
+    CATALOG_PATH,
+    INSIGHTS_PATH,
+    REJECTED_PATH,
+    TEXT_DIR,
+)
 
 MALFORMED_TITLE = "<malformed insight>"
 UNUSABLE_TITLE = "<unusable model answer>"
@@ -199,6 +206,47 @@ def run_extraction(
     return document
 
 
+def run_dry_run(
+    psi_ids: list[str],
+    model: str = LLM_MODEL,
+    max_tokens: int = LLM_MAX_TOKENS,
+    text_dir: Path = TEXT_DIR,
+    cache_dir: Path = CACHE_DIR,
+) -> list[RequestPreview]:
+    """Describe every request a real run would make. Calls nothing, writes nothing.
+
+    Needs no API key and no catalog. Raises the same errors as a real run
+    for missing text or a file that names another PSI.
+    """
+    previews = []
+
+    for psi_id in psi_ids:
+        for text_path in find_text_files(psi_id, text_dir):
+            extracted_doc = load_extracted_doc(text_path)
+            _check_requested_psi(extracted_doc, psi_id, text_path)
+            previews.append(
+                preview_request(extracted_doc, model, max_tokens, cache_dir)
+            )
+
+    return previews
+
+
+def _print_dry_run(previews: list[RequestPreview], model: str) -> None:
+    """Print one line per request and a summary of what would be paid."""
+    print(f"Dry run. Model {model}, prompt {PROMPT_VERSION}.")
+
+    for preview in previews:
+        print(format_preview(preview))
+
+    misses = [preview for preview in previews if not preview.cached]
+    tokens = sum(preview.estimated_input_tokens for preview in misses)
+    print(
+        f"{len(previews)} request(s); {len(misses)} would call the paid API "
+        f"(about {tokens} input tokens in total, an estimate). "
+        "Nothing was sent and nothing was written."
+    )
+
+
 def _load_catalog(catalog_path: Path, allow_missing: bool) -> dict[str, str]:
     """Load the catalog; with allow_missing, a missing file means empty."""
     if allow_missing and not Path(catalog_path).is_file():
@@ -221,8 +269,26 @@ def main() -> None:
         action="store_true",
         help="Do not fail if the catalog is missing: citations get no DOI.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Show the requests (page blocks, estimated tokens, cache hit or "
+            "miss) without calling the API or writing files."
+        ),
+    )
     args = parser.parse_args()
     model = LLM_MODEL
+
+    if args.dry_run:
+        try:
+            previews = run_dry_run(args.psi_ids, model, cache_dir=CACHE_DIR)
+            _print_dry_run(previews, model)
+        except (ValueError, FileNotFoundError) as error:
+            print(f"Error: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+
+        return
 
     try:
         catalog = _load_catalog(args.catalog, args.no_catalog)
