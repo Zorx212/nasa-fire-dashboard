@@ -144,6 +144,7 @@ def test_malformed_insight_is_rejected_but_the_others_survive(
     assert len(read(tmp_path, "insights.json")["insights"]) == 1
     assert rejected[0]["title"] == "<malformed insight>"
     assert rejected[0]["reasons"][0].startswith("Insight #2:")
+    assert rejected[0]["insight"] == broken
 
 
 def test_when_nothing_survives_it_raises_and_writes_no_insights_json(

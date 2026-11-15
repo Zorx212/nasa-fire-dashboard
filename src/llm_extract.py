@@ -13,6 +13,8 @@ from src.llm.prompts import PROMPT_VERSION, SYSTEM_PROMPT, build_user_message
 from src.llm.schemas import InsightsDocument
 from src.paths import CATALOG_PATH, INSIGHTS_PATH, REJECTED_PATH, TEXT_DIR
 
+MALFORMED_TITLE = "<malformed insight>"
+
 # A function that takes (system prompt, user message) and returns the
 # model's text. The real one goes through the cache and the API.
 LlmCall = Callable[[str, str], str]
@@ -63,8 +65,13 @@ def extract_document(
     )
     psi_id = extracted_doc["psi_id"]
     malformed = [
-        Rejection(psi_id=psi_id, title="<malformed insight>", reasons=[error], insight={})
-        for error in parsed.errors
+        Rejection(
+            psi_id=psi_id,
+            title=MALFORMED_TITLE,
+            reasons=[failure.message],
+            insight=failure.raw if isinstance(failure.raw, dict) else {"raw": failure.raw},
+        )
+        for failure in parsed.errors
     ]
 
     return AssembleResult(

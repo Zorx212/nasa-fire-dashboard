@@ -28,11 +28,19 @@ class RawInsight(BaseModel):
 
 
 @dataclass(frozen=True)
+class ParseFailure:
+    """An insight that did not have the expected shape, as the model wrote it."""
+
+    message: str
+    raw: object
+
+
+@dataclass(frozen=True)
 class ParsedOutput:
-    """Insights that parsed, plus one message per insight that did not."""
+    """Insights that parsed, plus one failure per insight that did not."""
 
     insights: list[RawInsight]
-    errors: list[str] = field(default_factory=list)
+    errors: list[ParseFailure] = field(default_factory=list)
 
 
 def _load_json_object(text: str) -> dict:
@@ -59,12 +67,21 @@ def _load_json_object(text: str) -> dict:
     raise ValueError("The model output is not a JSON object.")
 
 
-def _describe(error: ValidationError) -> str:
-    """Summarize a pydantic error as 'field: message' pairs."""
-    return "; ".join(
-        f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-        for item in error.errors()
-    )
+def describe_validation_error(error: ValidationError) -> str:
+    """Summarize a pydantic error as 'field: message' pairs.
+
+    An error with no field (the value is not an object at all) is just its
+    message.
+    """
+    parts = []
+
+    for item in error.errors():
+        location = ".".join(str(part) for part in item["loc"])
+        parts.append(
+            f"{location}: {item['msg']}" if location else item["msg"]
+        )
+
+    return "; ".join(parts)
 
 
 def parse_model_output(text: str) -> ParsedOutput:
@@ -72,7 +89,8 @@ def parse_model_output(text: str) -> ParsedOutput:
 
     Raises ValueError if the answer is not a JSON object with an 'insights'
     list. An insight that does not have the expected shape does not stop the
-    others: it is reported in ParsedOutput.errors with its position.
+    others: it is reported in ParsedOutput.errors with its position and the
+    raw value the model wrote, so it can be inspected.
     """
     data = _load_json_object(text)
     raw_insights = data.get("insights")
@@ -81,12 +99,17 @@ def parse_model_output(text: str) -> ParsedOutput:
         raise ValueError("The model output has no 'insights' list.")
 
     insights: list[RawInsight] = []
-    errors: list[str] = []
+    errors: list[ParseFailure] = []
 
     for position, raw in enumerate(raw_insights, start=1):
         try:
             insights.append(RawInsight.model_validate(raw))
         except ValidationError as error:
-            errors.append(f"Insight #{position}: {_describe(error)}")
+            errors.append(
+                ParseFailure(
+                    f"Insight #{position}: {describe_validation_error(error)}",
+                    raw,
+                )
+            )
 
     return ParsedOutput(insights=insights, errors=errors)

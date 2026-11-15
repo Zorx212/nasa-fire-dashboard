@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from src.llm.parse import parse_model_output
+from src.llm.parse import describe_validation_error, parse_model_output
 
 SUPPORTED = {
     "title": "t",
@@ -74,8 +74,9 @@ def test_one_malformed_insight_does_not_drop_the_others() -> None:
 
     assert [i.title for i in parsed.insights] == ["t", "t2"]
     assert len(parsed.errors) == 1
-    assert parsed.errors[0].startswith("Insight #2:")
-    assert "evidence_status" in parsed.errors[0]
+    assert parsed.errors[0].message.startswith("Insight #2:")
+    assert "evidence_status" in parsed.errors[0].message
+    assert parsed.errors[0].raw == broken
 
 
 def test_citation_with_page_zero_or_missing_page_is_an_error() -> None:
@@ -92,7 +93,7 @@ def test_missing_required_field_is_an_error() -> None:
     parsed = parse_model_output(answer(without_title))
 
     assert parsed.insights == []
-    assert "title" in parsed.errors[0]
+    assert "title" in parsed.errors[0].message
 
 
 def test_confidence_and_citations_are_optional() -> None:
@@ -126,3 +127,33 @@ def test_doi_and_psi_id_written_by_the_model_are_ignored() -> None:
     assert not hasattr(insight, "doi")
     assert not hasattr(insight.citations[0], "doi")
     assert not hasattr(insight.citations[0], "psi_id")
+
+
+def test_insight_that_is_not_an_object_is_reported_with_its_raw_value() -> None:
+    parsed = parse_model_output(answer("just text"))
+
+    assert parsed.insights == []
+    assert parsed.errors[0].raw == "just text"
+    assert parsed.errors[0].message.startswith("Insight #1: ")
+    assert not parsed.errors[0].message.startswith("Insight #1: :")
+
+
+def test_describe_validation_error_joins_fields_and_handles_no_field() -> None:
+    with_fields = parse_model_output(answer({"title": "t"})).errors[0].message
+    no_field = parse_model_output(answer(5)).errors[0].message
+
+    assert "description: " in with_fields and "; " in with_fields
+    assert not no_field.split("Insight #1: ")[1].startswith(":")
+
+
+def test_describe_validation_error_is_importable_and_summarizes() -> None:
+    from pydantic import ValidationError
+
+    from src.llm.parse import RawInsight
+
+    with pytest.raises(ValidationError) as info:
+        RawInsight.model_validate({})
+
+    text = describe_validation_error(info.value)
+
+    assert "title: " in text and "explanation: " in text

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pydantic import ValidationError
 
 from src.catalog import get_doi
-from src.llm.parse import RawInsight
+from src.llm.parse import RawInsight, describe_validation_error
 from src.llm.schemas import Citation, Insight
 from src.llm.verify import verify_citation
 
@@ -109,12 +109,7 @@ def assemble_insights(
                 accepted.append(_build_insight(raw, psi_id, doi))
                 continue
             except ValidationError as error:
-                reasons = [
-                    f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-                    if item["loc"]
-                    else item["msg"]
-                    for item in error.errors()
-                ]
+                reasons = [describe_validation_error(error)]
 
         rejected.append(
             Rejection(
