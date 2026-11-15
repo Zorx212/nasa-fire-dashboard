@@ -1,0 +1,24 @@
+## Tabla maestra v0 (5 PSI, 998 filas)
+- Conversiones: PSI-159 XO2 x100 -> o2_percent, approx p (bar) x100 -> pressure_kpa; PSI-39 Oxygen x100 -> o2_percent, "1 atm" -> 101.325 kPa
+- Flujo en cm/s en PSI-101, 102 y 107, sin conversión
+- PSI-39: 8 filas duplicadas idénticas eliminadas (87 -> 79)
+- PSI-107: varias filas por ignición (mismo día y hora, distinto flujo), inferido de los datos; el prefijo del ID las agrupa. Sin PDF revisado.
+- PSI-101: ID = test + material, porque el test 57 aparece con lampwick y teflon
+- flame_spread_rate vacío en todas las filas: ninguna tabla lo mide
+- PSI-22 fuera: la tabla es por día de pruebas, no por ensayo
+- Por confirmar en reportes: SE y FT (PSI-159), material_type liquid de PSI-39, Dibutyl Phthalate (PSI-102), valores negativos de aire en PSI-107
+- doi, license y title salen de data/catalog.csv (ya disponible).## PSI-99 (propagación en sólidos)
+- 9 ensayos (2-1 a 2-9): silicona, SIBAL, PMMA, Nomex. O2 21.5–22.1 %, flujo 20 cm/s. Sin presión en la tabla.
+- Se ingieren solo las columnas de microgravedad (?-g). Las de 1-g (gravedad terrestre) quedan en notes con su etiqueta, porque no son microgravedad.
+- flame_spread_rate: 2.1 mm/s (2-5) y 2.6 mm/s (2-6). Los demás ensayos no tienen velocidad.
+- flame_outcome: se extinguió en 2-1 a 2-4 (quemado ~0); propagó en 2-5 y 2-6 (hay velocidad); vacío en 2-7 (PMMA y Nomex mezclados), 2-8 y 2-9 (llama anclada, regresión de 0.01 a 0.04 mm/s, que no es propagación).
+- O2 "22.1 to 22.0" se toma al inicio (22.1). Según Note 1, el O2 se deriva de la producción de CO2.
+- Material de 2-6 y 2-9 estaba vacío (celdas combinadas): se tomó el de la fila anterior (SIBAL y PMMA). SUPUESTO.
+- Notas al pie del CSV original: Nota 2: la parte de PMMA se consumió por completo y el Nomex no se encendió. Nota 3: es la longitud de combustible con daño visible significativo. Nota 4: la llama queda anclada en la base de la muestra, con regresión muy lenta (0.01 a 0.04 mm/s).
+- Por confirmar en el reporte: que "?-g" sea microgravedad, que "?-g Spread Length" sea velocidad (los valores están en mm/s), la presión de la cámara y el material de 2-6 y 2-9.
+## Correcciones del PR #10
+- gravity_level = 0 (en g) en todas las filas: todos los experimentos son en microgravedad. Es un valor real, no un faltante.
+- material_type en español: gas (PSI-107, 159), sólido (PSI-99, 101, 102), líquido (PSI-39 y dibutil ftalato de PSI-102).
+- flame_outcome: SE = "se extinguió". FT = "flow terminated" (lectura por el nombre de la columna, sin confirmar). Va vacío porque describe cómo terminó la prueba, no lo que hizo la llama; el código original queda en notes. COMPLETAR: confirmar con el reporte de PSI-159 (p. __).
+- flow_velocity negativo en PSI-107: COMPLETAR (convención de signo o error), según el reporte (p. __). Hoy los valores pasan tal cual.
+- spread_rate_unit = mm/s en todas las filas, como el mock, aunque flame_spread_rate esté vacío.

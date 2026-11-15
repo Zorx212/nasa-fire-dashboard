@@ -1,0 +1,54 @@
+============================================================
+PSI_101/PSI-101_tabla.csv | filas: 109
+  'Sample Type' [object] nulos=0 | valores: {'Kapton': 29, 'Silicone': 22, 'Lampwick': 20, 'Pyrell': 20, 'Teflon': 18}
+  'SAME Test #' [object] nulos=0 | ej: 51
+  'Description' [object] nulos=0 | ej: B.L. new formula
+  'Date' [object] nulos=0 | ej: 21-Jul
+  'Inlet velocity (cm/s)' [float64] nulos=0 | min=0.0 max=8.1
+  'Rt/R0' [float64] nulos=0 | min=1.22 max=1.48
+  'Duration (sec)' [float64] nulos=41 | min=60.0 max=120.0
+  'Primary aging time (sec)' [float64] nulos=42 | min=1.0 max=720.0
+  'Primary mixing time (sec)' [float64] nulos=42 | min=8.0 max=8.0
+  'Net aging time (sec)' [float64] nulos=5 | min=21.0 max=1923.0
+============================================================
+PSI_102/PSI-102_tabla.csv | filas: 8
+  'Sample #' [int64] nulos=0 | min=1 max=8
+  'Sample Material' [object] nulos=0 | valores: {'Teflon': 4, 'Kapton: same conditions as 1-4': 1, 'Silicone Rubber: same conditions as 1-4': 1, 'Lampwick: same conditions as 1-4': 1, 'Dibutyl Phthalate: same conditions as 1-4': 1}
+  'Air Flow (cm/s)' [float64] nulos=4 | min=5.0 max=10.0
+  'Weight loss rate (mg/min)' [float64] nulos=4 | min=1.0 max=2.0
+  'Aging Duration (minutes)' [float64] nulos=4 | min=1.0 max=20.0
+============================================================
+PSI_107/PSI-107_tabla.csv | filas: 469
+  'GMT date' [int64] nulos=0 | min=45 max=174
+  'GMT ignition' [object] nulos=1 | ej: 14:37:08
+  'GMT Flame Off' [object] nulos=12 | ej: 14:48:03
+  'Fuel' [object] nulos=0 | valores: {'Propylene': 122, '75 % Propylene': 119, '50 % Propylene': 111, 'Propane': 50, 'Ethylene': 47, '75% Propylene': 16, 'Methane': 4}
+  'Nozzle (mm)' [float64] nulos=0 | min=0.4064 max=1.6002
+  'Fuel Rate (sccm)' [float64] nulos=12 | min=0.0 max=231.6
+  'Fuel Rate (mg/s)' [float64] nulos=12 | min=0.0 max=4.397
+  'HC Fuel Rate (mg/s)' [float64] nulos=0 | min=0.0 max=4.397
+  'Air Rate (cm/s)' [float64] nulos=25 | min=-5.92 max=85.28
+============================================================
+PSI_22/PSI-22_tabla.csv | filas: 32
+  'Test Type' [object] nulos=11 | valores: {'First round of tests with coflow burner': 11, nan: 11, 'Second round of tests with gas-jet burner': 10}
+  'Test Day' [float64] nulos=11 | min=18073.0 max=18319.0
+  'Year' [float64] nulos=11 | min=2018.0 max=2018.0
+  'Month' [float64] nulos=11 | min=3.0 max=11.0
+  'Date' [float64] nulos=11 | min=1.0 max=29.0
+  'Mesh Polarity' [object] nulos=11 | valores: {nan: 11, 'positive': 11, 'negative': 10}
+  'Fuel Bottle' [object] nulos=11 | valores: {nan: 11, '100% CH4': 6, '100% C2H4': 6, '40% CH4': 5, '30% C2H4': 4}
+  'Fuel Conc' [object] nulos=0 | valores: {'100%': 10, '40%': 5, '80%': 5, '70%': 4, '30%': 4, '25%': 2, '50%': 2}
+  'Flames Ignited' [float64] nulos=11 | min=8.0 max=15.0
+  'Notes' [object] nulos=28 | valores: {nan: 28, 'Test day is formatted YYDDD where YY identifies year and DDD identifies day of year (GMT). ': 1, 'Mesh polarity refers to the polarity of the high-voltage power supply and the copper electrode relative to the burner. ': 1, 'Fuel Conc. (diluted with nitrogen on a volume basis) was varied between tests, but typically matched the bottle. The list only accounts for flames ignited. ': 1, 'Flames Ignited is the number ignited on that day (neglecting the day change on ISS). ': 1}
+============================================================
+PSI_39/PSI-39_tabla.csv | filas: 87
+  'Flex Number' [int64] nulos=0 | min=1206 max=1387
+  'Test Date' [object] nulos=0 | ej: 9-Mar-17
+  'Local Time' [object] nulos=0 | ej: 02:03:08 pm est
+  'CIR' [object] nulos=0 | ej: f068a03
+  'Pressure' [object] nulos=0 | ej: 1 atm
+  'Oxygen' [float64] nulos=0 | min=0.17 max=0.21
+  'Nitrogen' [float64] nulos=0 | min=0.2 max=0.83
+  'Helium' [float64] nulos=0 | min=0.0 max=0.59
+  'Fiber' [object] nulos=9 | valores: {'Yes': 50, 'No': 28, nan: 9}
+  'Fuel' [object] nulos=0 | valores: {'[.60]/[.40] C12H26/iso-dodecane ': 41, '[.75]/[.25] C12H26/iso-dodecane ': 24, 'C12H26': 22}

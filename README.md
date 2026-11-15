@@ -28,3 +28,22 @@ usa los datos de ejemplo de `data/mock/` y muestra un aviso.
   `data/mock/insights_mock.json` es solo un ejemplo provisional de la app.
 
 La app nunca llama al LLM: solo lee JSON precalculado.
+
+
+## Regenerar la tabla maestra
+
+Los CSV y PDFs originales no están en Git: viven en la carpeta `data-raw` del Drive del equipo:(https://drive.google.com/drive/folders/1NO1EmH_un1YWHiUuS2RPZqDvNYCIrrBV)
+
+1. Descarga esa carpeta y colócala en `data/raw/`, con una subcarpeta por investigación (`PSI_39`, `PSI_99`, `PSI_101`, ...).
+2. Con el entorno virtual activo: `pip install -r requirements.txt`
+3. Desde la raíz del proyecto:
+
+```bash
+python -m src.normalize
+```
+
+Resultado: `data/processed/master_table.csv`. La salida imprime las filas por PSI, los avisos y `[ok] columnas idénticas al mock`.
+
+- Entradas: `data/raw/PSI_<n>/*.csv` y `data/catalog.csv` (doi, license, title).
+- Para agregar una investigación: una entrada nueva en `SPECS` de `src/normalize.py`; la llave es la ruta del CSV dentro de `data/raw`.
+- Convenciones: `gravity_level` 0 (en g), `material_type` gas / sólido / líquido, vacío = sin dato. Conversiones y pendientes en `notes/discoveries.md`.
