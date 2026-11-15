@@ -12,7 +12,7 @@ _OUTPUT_EXAMPLE = """{
       "evidence_status": "supported",
       "confidence": "medium",
       "citations": [
-        {"page": 10, "quote": "exact words copied from page 10"}
+        {"page": 10, "quote": "exact words copied from page 10 without changing a single one"}
       ],
       "explanation": "why the quoted passages support the finding"
     },
@@ -79,6 +79,15 @@ def build_user_message(extracted_doc: dict) -> str:
     ]
 
     for page in pages:
+        if (
+            not isinstance(page, dict)
+            or not isinstance(page.get("page_number"), int)
+            or not isinstance(page.get("text"), str)
+        ):
+            raise ValueError(
+                "Every page needs an integer 'page_number' and a 'text' string."
+            )
+
         if page.get("is_empty"):
             continue
 

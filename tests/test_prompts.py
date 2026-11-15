@@ -87,3 +87,49 @@ def test_malformed_documents_raise_clear_errors() -> None:
 
     with pytest.raises(ValueError, match="pages"):
         build_user_message({"psi_id": "PSI-000"})
+
+
+def test_the_prompt_example_is_a_valid_answer_that_follows_its_own_rules() -> None:
+    from src.llm.parse import parse_model_output
+    from src.llm.prompts import _OUTPUT_EXAMPLE
+
+    parsed = parse_model_output(_OUTPUT_EXAMPLE)
+
+    assert parsed.errors == []
+    assert [i.evidence_status for i in parsed.insights] == [
+        "supported",
+        "insufficient_data",
+    ]
+
+    for insight in parsed.insights:
+        for citation in insight.citations:
+            assert len(citation.quote.split()) >= MIN_QUOTE_WORDS
+
+
+def test_changing_the_prompt_text_requires_a_new_prompt_version() -> None:
+    import hashlib
+
+    # If this fails you changed SYSTEM_PROMPT: bump PROMPT_VERSION in
+    # src/llm/prompts.py (the cache key changes with the text) and then
+    # update this hash and the version below.
+    digest = hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
+
+    assert (PROMPT_VERSION, digest) == (
+        "1.0.0",
+        "6178720fc8e02e4e17c2a8356890a19e2d1b6fa951d5d129850973252d0c3a06",
+    )
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        "not a dict",
+        {"text": "no number"},
+        {"page_number": 1},
+        {"page_number": "1", "text": "number as text"},
+        {"page_number": 1, "text": 5},
+    ],
+)
+def test_malformed_page_raises_a_clear_error(page) -> None:
+    with pytest.raises(ValueError, match="page_number"):
+        build_user_message({"psi_id": "PSI-000", "pages": [page]})
